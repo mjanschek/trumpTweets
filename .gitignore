@@ -1,0 +1,10 @@
+
+twitter4j\.properties
+
+target/
+
+gradle/
+
+build/
+
+bin/
