@@ -9,6 +9,8 @@ import java.util.Properties;
 public class AppProperties {
 	
     private static List<String> hashTagList;
+    private static String filters[];
+    private static String csvFilepath;
 
 	public AppProperties(String filePath) {
 		readPropertyFile(filePath);
@@ -30,6 +32,9 @@ public class AppProperties {
 			hashTagList.add(hashtag);
 		}
 		setHashTagList(hashTagList);
+		
+		setFilters(properties.getProperty("filters").split(","));
+		setCsvFilepath(properties.getProperty("csvFilepath"));
 	}
 	
 	public static List<String> getHashTagList() {
@@ -39,4 +44,22 @@ public class AppProperties {
 	public static void setHashTagList(List<String> hashTagList) {
 		AppProperties.hashTagList = hashTagList;
 	}
+
+	public static String[] getFilters() {
+		return filters;
+	}
+
+	public static void setFilters(String[] filters) {
+		AppProperties.filters = filters;
+	}
+
+	public static String getCsvFilepath() {
+		return csvFilepath;
+	}
+
+	public static void setCsvFilepath(String csvFilepath) {
+		AppProperties.csvFilepath = csvFilepath;
+	}
+	
+	
 }

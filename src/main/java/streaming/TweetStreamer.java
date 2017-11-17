@@ -2,8 +2,10 @@ package streaming;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -22,6 +24,7 @@ import org.apache.spark.streaming.twitter.TwitterUtils;
 import application.AppProperties;
 import twitter4j.HashtagEntity;
 import twitter4j.Status;
+import twitter4j.TwitterObjectFactory;
 
 
 /**
@@ -30,30 +33,6 @@ import twitter4j.Status;
  */
 @SuppressWarnings("serial")
 public class TweetStreamer implements java.io.Serializable {
-
-//    private static List<String> hashTagList;
-
-	public TweetStreamer() {
-//		readPropertyFile("src/main/resources/application.properties");
-	}
-	
-//private void readPropertyFile(String filePath) {
-//	Properties properties = new Properties();
-//	try {
-//		properties.load(new FileInputStream(filePath));
-//	} catch (IOException e) {
-//		// TODO Auto-generated catch block
-//		e.printStackTrace();
-//	}
-//	String hashTags[] = properties.getProperty("hashtags").split(",");
-//	
-//	hashTagList = new ArrayList<String>();
-//	
-//	for(String hashtag:hashTags) {
-//		hashTagList.add(hashtag);
-//	}
-//	setHashTagList(hashTagList);
-//}
 	
 public void stream() {
 
@@ -70,49 +49,63 @@ public void stream() {
       sparkConf.setMaster("local[8]");
     }
     
-    String filters[] = AppProperties.getHashTagList().stream().toArray(String[]::new);
+    String filters[] = AppProperties.getFilters();
 
-    JavaStreamingContext jssc = new JavaStreamingContext(sparkConf, new Duration(2000));
+    JavaStreamingContext jssc = new JavaStreamingContext(sparkConf, new Duration(1000));
     jssc.sparkContext().setLogLevel("ERROR");
     JavaReceiverInputDStream<Status> stream = TwitterUtils.createStream(jssc, filters);
     
     JavaDStream<Status> statuses = stream.filter(new Function<Status, Boolean>() {
 		@Override
 		public Boolean call(Status tweet) throws Exception {
-			List <String> hashTagList = AppProperties.getHashTagList();
-//			
-//			System.out.println(filters);
-			HashtagEntity[] hashTagEntities = tweet.getHashtagEntities();
-//			
-			
-			for (HashtagEntity hashTag:hashTagEntities) {				
-				if(hashTagList.contains(hashTag.getText())) {
-					return tweet.getLang().equals("en");
-					}
-				}
-			return false;			
+			return tweet.getLang().equals("en");
 		}
       });
+    
+
     
     statuses.foreachRDD(new VoidFunction<JavaRDD<Status>>() {
 		@Override
 		public void call(JavaRDD<Status> allTweets) throws Exception {
 			// TODO Auto-generated method stub
 			List<Status> tweets = allTweets.collect();
+			
+			FileWriter writer = new FileWriter(AppProperties.getCsvFilepath(), true);
+			
 			for(Status tweet:tweets) {
 				try {
-					String hashTags = "";
-					for(HashtagEntity hashTag:tweet.getHashtagEntities()) {
-						hashTags = hashTags + " " + hashTag.getText();
+					HashtagEntity[] hashTagEnts = tweet.getHashtagEntities();
+					String[] hashTags = new String[hashTagEnts.length];
+					for(int i = 0; i<hashTagEnts.length; i++) {
+						hashTags[i] = hashTagEnts[i].getText();
 					}
-					System.out.println(String.format("\nTIME: %s",tweet.getCreatedAt().toString()));
-					System.out.println(String.format("USER: %s", tweet.getUser().getName()));
-					System.out.println(String.format("HASHTAGS: %s", hashTags));
-					System.out.printf(tweet.getText().toString() + "\n");
+					
+					String timestamp = tweet.getCreatedAt().toString();
+					String userId = Long.toString(tweet.getUser().getId());
+					String tweetId = Long.toString(tweet.getId());
+					String followers = Integer.toString(tweet.getUser().getFollowersCount());
+					String hashTagString = String.join(",", hashTags);
+					String favorites = Integer.toString(tweet.getFavoriteCount());
+					String retweets = Integer.toString(tweet.getRetweetCount());
+					String text = tweet.getText().toString();
+					
+					CSVUtils.writeLine(writer, 
+							Arrays.asList(timestamp,
+									userId,
+									tweetId,
+									followers,
+									hashTagString,
+									favorites,
+									retweets,
+									text),
+							';', '"');
+					
 				}catch (Exception e){
 					continue;
 				}
 			}
+			writer.flush();
+			writer.close();
 		}
     });
 
@@ -122,15 +115,6 @@ public void stream() {
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
+    
   }
-
-
-//public static List<String> getHashTagList() {
-//	return hashTagList;
-//}
-//
-//public void setHashTagList(List<String> hashTagList) {
-//	this.hashTagList = hashTagList;
-//}
-
 }
