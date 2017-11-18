@@ -3,20 +3,20 @@ apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'application'
 
-archivesBaseName = 'trumpTweets'
+archivesBaseName = 'TrumpTweets'
 version = '0.1'
 group = 'core'
 
-mainClassName = 'application.trumpTweetsApplication'
+mainClassName = 'application.TrumpTweetsApplication'
 
 jar {
     manifest {
-    	attributes 'Main-Class': 'application.trumpTweetsApplication'
+    	attributes 'Main-Class': 'application.TrumpTweetsApplication'
     }
     
-	file('twitter4j.properties')
+	file('src/main/resources/*.properties')
 	
-    destinationDir = file("target")
+    destinationDir = file("/home/garg/tweets/")
 }
 
 

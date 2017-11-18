@@ -2,6 +2,7 @@ package application;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -12,14 +13,16 @@ public class AppProperties {
     private static String filters[];
     private static String csvFilepath;
 
-	public AppProperties(String filePath) {
-		readPropertyFile(filePath);
+	public AppProperties() {
+		readPropertyFile();
 	}
 	
-	private void readPropertyFile(String filePath) {
+	private void readPropertyFile() {
+		
 		Properties properties = new Properties();
 		try {
-			properties.load(new FileInputStream(filePath));
+			InputStream file = this.getClass().getResourceAsStream("/application.properties");
+			properties.load(file);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

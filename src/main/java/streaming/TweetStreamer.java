@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -25,6 +26,8 @@ import application.AppProperties;
 import twitter4j.HashtagEntity;
 import twitter4j.Status;
 import twitter4j.TwitterObjectFactory;
+import twitter4j.UserMentionEntity;
+import twitter4j.json.DataObjectFactory;
 
 
 /**
@@ -49,10 +52,11 @@ public void stream() {
       sparkConf.setMaster("local[8]");
     }
     
+    
     String filters[] = AppProperties.getFilters();
 
-    JavaStreamingContext jssc = new JavaStreamingContext(sparkConf, new Duration(1000));
-    jssc.sparkContext().setLogLevel("ERROR");
+    JavaStreamingContext jssc = new JavaStreamingContext(sparkConf, new Duration(200));
+    jssc.sparkContext().setLogLevel("WARN");
     JavaReceiverInputDStream<Status> stream = TwitterUtils.createStream(jssc, filters);
     
     JavaDStream<Status> statuses = stream.filter(new Function<Status, Boolean>() {
@@ -80,24 +84,40 @@ public void stream() {
 						hashTags[i] = hashTagEnts[i].getText();
 					}
 					
-					String timestamp = tweet.getCreatedAt().toString();
-					String userId = Long.toString(tweet.getUser().getId());
-					String tweetId = Long.toString(tweet.getId());
-					String followers = Integer.toString(tweet.getUser().getFollowersCount());
-					String hashTagString = String.join(",", hashTags);
-					String favorites = Integer.toString(tweet.getFavoriteCount());
-					String retweets = Integer.toString(tweet.getRetweetCount());
-					String text = tweet.getText().toString();
+					UserMentionEntity[] userMentionEnts = tweet.getUserMentionEntities();
+					String[] userMentions = new String[userMentionEnts.length];
+					for(int i = 0; i<userMentionEnts.length; i++) {
+						userMentions[i] = Long.toString(userMentionEnts[i].getId());
+					}
+								
+					String timestamp 		= tweet.getCreatedAt().toString();
+					String userId 			= Long.toString(tweet.getUser().getId());
+					String userName 		= tweet.getUser().getName();
+					String followers 		= Integer.toString(tweet.getUser().getFollowersCount());
+					String tweetId 			= Long.toString(tweet.getId());
+					String hashTagString 	= String.join(",", hashTags);
+					String userIdsMentioned = String.join(",", userMentions);
+					String favorites 		= Integer.toString(tweet.getFavoriteCount());
+					String retweets 		= Integer.toString(tweet.getRetweetCount());
+					String place 			= "";
+					if(tweet.getPlace() != null) {
+						place 				= tweet.getPlace().getFullName();						
+					}
+					String text 			= tweet.getText().toString();
+					
 					
 					CSVUtils.writeLine(writer, 
-							Arrays.asList(timestamp,
-									userId,
-									tweetId,
-									followers,
-									hashTagString,
-									favorites,
-									retweets,
-									text),
+							Arrays.asList(	timestamp,
+											userId,
+											userName,
+											followers,
+											tweetId,
+											hashTagString,
+											userIdsMentioned,
+											favorites,
+											retweets,
+											place,
+											text),
 							';', '"');
 					
 				}catch (Exception e){
