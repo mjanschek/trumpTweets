@@ -10,8 +10,9 @@ import java.util.Properties;
 public class AppProperties {
 	
     private static List<String> hashTagList;
+    private static List<String> hashTagListNormalized;
     private static String filters[];
-    private static String csvFilepath;
+    private static String saveDir;
 
 	public AppProperties() {
 		readPropertyFile();
@@ -29,15 +30,19 @@ public class AppProperties {
 		}
 		String hashTags[] = properties.getProperty("hashtags").split(",");
 		
-		hashTagList = new ArrayList<String>();
+		List<String> hashTagList = new ArrayList<String>();
+		List<String> hashTagListNormalized = new ArrayList<String>();
 		
 		for(String hashtag:hashTags) {
 			hashTagList.add(hashtag);
+			hashTagListNormalized.add(hashtag.toLowerCase());
 		}
+		
 		setHashTagList(hashTagList);
+		setHashTagListNormalized(hashTagListNormalized);
 		
 		setFilters(properties.getProperty("filters").split(","));
-		setCsvFilepath(properties.getProperty("csvFilepath"));
+		setSaveDir(properties.getProperty("saveDir"));
 	}
 	
 	public static List<String> getHashTagList() {
@@ -48,6 +53,14 @@ public class AppProperties {
 		AppProperties.hashTagList = hashTagList;
 	}
 
+	public static List<String> getHashTagListNormalized() {
+		return hashTagListNormalized;
+	}
+
+	public static void setHashTagListNormalized(List<String> hashTagListNormalized) {
+		AppProperties.hashTagListNormalized = hashTagListNormalized;
+	}
+	
 	public static String[] getFilters() {
 		return filters;
 	}
@@ -56,13 +69,13 @@ public class AppProperties {
 		AppProperties.filters = filters;
 	}
 
-	public static String getCsvFilepath() {
-		return csvFilepath;
+	public static String getSaveDir() {
+		return saveDir;
 	}
 
-	public static void setCsvFilepath(String csvFilepath) {
-		AppProperties.csvFilepath = csvFilepath;
+	public static void setSaveDir(String saveDir) {
+		AppProperties.saveDir = saveDir;
 	}
-	
+
 	
 }
