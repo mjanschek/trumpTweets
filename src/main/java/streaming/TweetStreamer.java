@@ -153,7 +153,7 @@ public void stream() {
 							+ "\"textLength\";"
 							+ "\"isTrumpTweet\";"
 							+ "\"isNewsTweet\";"
-							+ "\"iFakeNewsTweet\";"
+							+ "\"isFakeNewsTweet\";"
 							+ "\"isDemocratsTweet\";"
 							+ "\"isWashingtonDCTweet\";"
 							+ "\n";
