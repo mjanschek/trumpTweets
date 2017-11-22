@@ -155,7 +155,7 @@ public void stream() {
 							+ "\"isNewsTweet\";"
 							+ "\"isFakeNewsTweet\";"
 							+ "\"isDemocratsTweet\";"
-							+ "\"isWashingtonDCTweet\";"
+							+ "\"isWashingtonDCTweet\""
 							+ "\n";
 					writer.write(header);
 				}
