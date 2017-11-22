@@ -13,24 +13,25 @@ def updateTweets(inFile='/home/garg/tweets/filteredTweets.csv',
                          sep=';',
                          header=0,
                          quoting=2)
-    #
-    # names = ['timestamp',
-    #          'userId',
-    #          'userName',
-    #          'followers',
-    #          'tweetId',
-    #          'hashTagString',
-    #          'userIdsMentioned',
-    #          'favorites',
-    #          'retweets',
-    #          'place',
-    #          'text',
-    #          'textLength',
-    #          'isTrumpTweet',
-    #          'isNewsTweet',
-    #          'isFakeNewsTweet',
-    #          'isDemocratsTweet',
-    #          'isWashingtonDCTweet']
+
+    ### Fieldnames are:
+    # 'timestamp'
+    # 'userId'
+    # 'userName'
+    # 'followers'
+    # 'tweetId'
+    # 'hashTagString'
+    # 'userIdsMentioned'
+    # 'favorites'
+    # 'retweets'
+    # 'place'
+    # 'text'
+    # 'textLength'
+    # 'isTrumpTweet'
+    # 'isNewsTweet'
+    # 'isFakeNewsTweet'
+    # 'isDemocratsTweet'
+    # 'isWashingtonDCTweet'
 
     # get only unique tweets, use id
     oldLen = len(tweets)

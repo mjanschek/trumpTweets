@@ -17,8 +17,14 @@ jar {
 	file('src/main/resources/*.properties')
 	
     destinationDir = file("/home/garg/tweets/")
+    
+    
 }
 
+copy {
+	from 'src/main/python'
+	into '/home/garg/tweets'
+}
 
 repositories {
 	mavenCentral()
