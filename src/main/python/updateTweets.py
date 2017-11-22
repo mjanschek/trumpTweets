@@ -3,10 +3,12 @@ import tweepy
 import datetime as dt
 import sys
 import getopt
+import time
 
 def updateTweets(inFile='/home/garg/tweets/filteredTweets.csv',
                  outFile='/home/garg/tweets/filteredTweetsUpdated.csv',
-                 n=0):
+                 n=0,
+                 noTimeout=False):
 
     # read tweets into pandas
     tweets = pd.read_csv(inFile,
@@ -63,7 +65,14 @@ def updateTweets(inFile='/home/garg/tweets/filteredTweets.csv',
     subTweets['updatedTimestamp'] = pd.to_datetime(subTweets['timestamp'])
     subTweets['secondsOld'] = pd.Series()
 
+    requestTimeout = 1/(450/15/60)
+    requestCount = int(n/100)+1
+
     print("### Request information for", n, "tweets: ###")
+    print("- that's", requestCount, "requests")
+    if not noTimeout:
+        print("- request timeout is set to", requestTimeout, "second (maximum Twitter API Requests are 450/15min)")
+        print("=> This will take at least", requestCount*requestTimeout/60, "minutes!")
     for i in range(0, n, 100):
         j = i + 100
         if n - i < 100:
@@ -89,14 +98,14 @@ def updateTweets(inFile='/home/garg/tweets/filteredTweets.csv',
                     sys.exit()
                 raise e
 
-        print(i, "-", j)
-
         uts = dt.datetime.now()
         subTweets['updatedTimestamp'][i:j] = uts
         for tweet in tweetSet:
             subTweets.loc[tweets['tweetId'] == tweet.id, ('retweets',
                                                           'favorites')] = (tweet.retweet_count,
                                                                            tweet.favorite_count)
+        if not noTimeout:
+            time.sleep(requestTimeout)
 
 
     subTweets['secondsOld'] = subTweets.apply(lambda x: (x['updatedTimestamp'] - x['timestamp']).seconds, axis=1)
@@ -109,23 +118,40 @@ def updateTweets(inFile='/home/garg/tweets/filteredTweets.csv',
                      quoting=2,
                      index=False)
 
+def updateTweetsCycle(dir):
+    allinputfile = dir + '/allTweets.csv'
+    alloutputfile = dir + '/allTweetsUpdated.csv'
+    filterinputfile = dir + '/filteredTweets.csv'
+    filteroutputfile = dir + '/filteredTweetsUpdated.csv'
+
+    while True:
+        updateTweets(inFile=allinputfile,
+                     outFile=alloutputfile)
+        updateTweets(inFile=filterinputfile,
+                     outFile=filteroutputfile)
 
 def main(argv):
+    dir = '/home/garg/tweets'
+    loop = False
     inputfile = '/home/garg/tweets/allTweets.csv'
     outputfile = '/home/garg/tweets/allTweetsUpdated.csv'
     ntweets = 0
+
+    infoString = 'updateTweets.py -i <inputfile> -o <outputfile> -n <ntweets> -d <dir> -l <loop>'
     try:
         opts, args = getopt.getopt(argv,
-                                   "hi:o:n:",
+                                   "hi:o:n:d:l",
                                    ["ifile=",
                                     "ofile=",
-                                    "ntweets="])
+                                    "ntweets=",
+                                    "dir=",
+                                    "loop="])
     except getopt.GetoptError:
-        print('updateTweets.py -i <inputfile> -o <outputfile> -n <ntweets>')
+        print(infoString)
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('updateTweets.py -i <inputfile> -o <outputfile> -n <ntweets>')
+            print(infoString)
             sys.exit()
         elif opt in ("-i", "--ifile"):\
             inputfile = arg
@@ -133,11 +159,18 @@ def main(argv):
             outputfile = arg
         elif opt in ("-n", "--ntweets"): \
             ntweets = int(arg)
+        elif opt in ("-d", "--dir"): \
+            dir = arg
+        elif opt in ("-l", "--loop"): \
+            loop = True
 
-    updateTweets(inFile=inputfile,
-                 outFile=outputfile,
-                 n=ntweets)
-
+    if loop:
+        updateTweetsCycle(dir=dir)
+    else:
+        updateTweets(inFile=inputfile,
+                     outFile=outputfile,
+                     n=ntweets,
+                     noTimeout=True)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
