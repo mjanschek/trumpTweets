@@ -4,6 +4,8 @@ import datetime as dt
 import sys
 import getopt
 import time
+import updateAnalysis
+
 
 def updateTweets(inFile='/home/garg/tweets/filteredTweets.csv',
                  outFile='/home/garg/tweets/filteredTweetsUpdated.csv',
@@ -117,35 +119,46 @@ def updateTweets(inFile='/home/garg/tweets/filteredTweets.csv',
                      quotechar='"',
                      quoting=2,
                      index=False)
+    print('Updated', outFile)
 
-def updateTweetsCycle(dir):
+
+def updateTweetsLoop(dir):
     allinputfile = dir + '/allTweets.csv'
     alloutputfile = dir + '/allTweetsUpdated.csv'
     filterinputfile = dir + '/filteredTweets.csv'
     filteroutputfile = dir + '/filteredTweetsUpdated.csv'
 
     while True:
+        print("Updating", alloutputfile, "...")
         updateTweets(inFile=allinputfile,
                      outFile=alloutputfile)
+        print("Updating", filteroutputfile, "...")
         updateTweets(inFile=filterinputfile,
                      outFile=filteroutputfile)
+        print("Updating analysis...")
+        updateAnalysis.updateAnalysis(filteredTweetsRepo=filteroutputfile,
+                                      allTweetsRepo=alloutputfile,
+                                      mainDir=dir)
+
 
 def main(argv):
     dir = '/home/garg/tweets'
     loop = False
+    analysis = False
     inputfile = '/home/garg/tweets/allTweets.csv'
     outputfile = '/home/garg/tweets/allTweetsUpdated.csv'
     ntweets = 0
 
-    infoString = 'updateTweets.py -i <inputfile> -o <outputfile> -n <ntweets> -d <dir> -l <loop>'
+    infoString = 'updateTweets.py -i <inputfile> -o <outputfile> -n <ntweets> -d <dir> -l <loop> -a <analysis>'
     try:
         opts, args = getopt.getopt(argv,
-                                   "hi:o:n:d:l",
+                                   "hi:o:n:d:la",
                                    ["ifile=",
                                     "ofile=",
                                     "ntweets=",
                                     "dir=",
-                                    "loop="])
+                                    "loop=",
+                                    "analysis="])
     except getopt.GetoptError:
         print(infoString)
         sys.exit(2)
@@ -163,14 +176,19 @@ def main(argv):
             dir = arg
         elif opt in ("-l", "--loop"): \
             loop = True
+        elif opt in ("-a", "--analysis"): \
+            analysis = True
 
     if loop:
-        updateTweetsCycle(dir=dir)
+        updateTweetsLoop(dir=dir)
+    elif analysis:
+        updateAnalysis.updateAnalysis(mainDir=dir)
     else:
         updateTweets(inFile=inputfile,
                      outFile=outputfile,
                      n=ntweets,
                      noTimeout=True)
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
