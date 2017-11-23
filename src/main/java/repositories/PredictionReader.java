@@ -2,6 +2,7 @@ package repositories;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.util.HashMap;
 import java.util.List;
 
 import com.opencsv.bean.CsvToBeanBuilder;
@@ -49,6 +50,14 @@ public class PredictionReader implements java.io.Serializable{
 	public void updatePredictions() throws IllegalStateException, FileNotFoundException {
 		updateComboPredictions();
 		updateHashTagPredictions();
+	}
+	
+	public HashMap<String, HashTagPrediction> getHashTagPredictionHashMap(){
+		HashMap<String, HashTagPrediction> hashTagMap = new HashMap<String, HashTagPrediction>();
+		for (HashTagPrediction hashTagPrediction : getHashTagPredictions()) {
+			hashTagMap.put(hashTagPrediction.getHashtag(), hashTagPrediction);
+		}
+		return hashTagMap;
 	}
 
 	public List<ComboPrediction> getComboPredictions() {

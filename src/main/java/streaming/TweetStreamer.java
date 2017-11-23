@@ -2,6 +2,9 @@ package streaming;
 
 import repositories.AppProperties;
 import repositories.PredictionReader;
+import scala.Tuple3;
+import repositories.ComboPrediction;
+import repositories.HashTagPrediction;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -9,6 +12,7 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.log4j.Level;
@@ -61,24 +65,81 @@ public class TweetStreamer implements java.io.Serializable {
 		JavaStreamingContext jssc = new JavaStreamingContext(sparkConf, new Duration(200));
 		jssc.sparkContext().setLogLevel("ERROR");
 		JavaReceiverInputDStream<Status> stream = TwitterUtils.createStream(jssc, filters);
-
-		/**
-		 * START OF FILTERING BLOCK
-		 * filter for english tweets exclude retweets and truncated retweets
-		 * also, filter for wanted hashtags
-		 */
 		
 		JavaDStream<Status> statusesNoTruncation = filterTweets(stream);
 
 		JavaDStream<Status> wantedHashtags = statusesNoTruncation.filter(filterForHashtags(AppProperties.getHashTagListNormalized()));
 
-		/**
-		 * END OF FILTERING BLOCK
-		 */
-
 		statusesNoTruncation.foreachRDD(writeTweets(AppProperties.getSaveDir() + "allTweets.csv"));
 		wantedHashtags.foreachRDD(writeTweets(AppProperties.getSaveDir() + "filteredTweets.csv"));
+		
+		JavaDStream<Tuple3<Status, ComboPrediction, List<HashTagPrediction>>> matchedTweets = statusesNoTruncation
+				.map(new Function<Status, Tuple3<Status, ComboPrediction, List<HashTagPrediction>>>() {
+			@Override
+			public Tuple3<Status, ComboPrediction, List<HashTagPrediction>> call(Status status) throws Exception {
+				predictions = getPredictions();
 
+				List <String> hashTagList = new ArrayList<String>();
+				for(HashtagEntity hashTag:status.getHashtagEntities()) {
+					//normalize hashtags, ignore casing
+					hashTagList.add(hashTag.getText().toLowerCase());	
+				}
+				boolean hasTrumpHashtag = hashTagList.contains("trump");
+				boolean hasNewsHashtag = hashTagList.contains("news");
+				boolean hasFakeNewsHashtag = hashTagList.contains("fakenews");
+				boolean hasDemocratsHashtag = hashTagList.contains("democrats");
+				boolean hasWdcHashtag = hashTagList.contains("washingtondc");
+				
+				List<ComboPrediction> comboPredictionList = predictions.getComboPredictions();
+				ComboPrediction correctCombo = null;
+				
+				for(ComboPrediction combo:comboPredictionList) {
+					if(	hasTrumpHashtag == combo.isTrumpTweet() &&
+							hasNewsHashtag == combo.isNewsTweet() &&
+							hasFakeNewsHashtag == combo.isFakeNewsTweet() &&
+							hasDemocratsHashtag == combo.isDemocratsTweet() && 
+							hasWdcHashtag == combo.isWashingtonDCTweet() ) {
+						correctCombo = combo;
+					}
+				}
+				predictions.getHashTagPredictionHashMap();
+				HashMap<String, HashTagPrediction> hashTagPredictionHashMap = predictions.getHashTagPredictionHashMap();
+				List<HashTagPrediction> correctHashTagList = new ArrayList<HashTagPrediction>();
+
+				HashTagPrediction correctPred;
+				for(String hashTag:hashTagList) {
+					try {
+						correctPred = hashTagPredictionHashMap.get(hashTag);
+					}catch (Exception e){
+						correctPred = new HashTagPrediction(hashTag, 0, 0, 0, 0, 0, 0);
+					}
+					
+					correctHashTagList.add(correctPred);
+				}
+				
+				return new Tuple3<Status, ComboPrediction, List<HashTagPrediction>>(status, correctCombo, correctHashTagList);
+			}
+		});
+		
+		matchedTweets.foreachRDD(new VoidFunction<JavaRDD<Tuple3<Status, ComboPrediction, List<HashTagPrediction>>>>(){
+			
+			@Override
+			public void call(JavaRDD<Tuple3<Status, ComboPrediction, List<HashTagPrediction>>> tweets) throws Exception {
+				// TODO Auto-generated method stub
+				List<Tuple3<Status, ComboPrediction, List<HashTagPrediction>>> tweetsAndPredictions = tweets.collect();
+				for(Tuple3<Status, ComboPrediction, List<HashTagPrediction>> tweetsAndPrediction:tweetsAndPredictions) {
+					
+					System.out.println("-");
+					System.out.println(String.format("Tweet ID: %s", Long.toString(tweetsAndPrediction._1().getId())));
+					System.out.println(String.format("ComboPrediction: %s", tweetsAndPrediction._2().toString()));
+					System.out.println(String.format("HashTagPredictions: %s", tweetsAndPrediction._3().toString()));
+					System.out.println("-");
+				}
+			}
+			
+		});
+
+		
 		jssc.start();
 		try {
 			jssc.awaitTermination();
@@ -104,7 +165,6 @@ public class TweetStreamer implements java.io.Serializable {
 	public VoidFunction<JavaRDD<Status>> writeTweets(String filePath){return new VoidFunction<JavaRDD<Status>>() {
 		@Override
 		public void call(JavaRDD<Status> allTweets) throws Exception {
-			// TODO Auto-generated method stub
 			List<Status> tweets = allTweets.collect();
 
 			boolean firstLine = false;

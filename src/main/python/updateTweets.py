@@ -11,7 +11,6 @@ def updateTweets(inFile='/home/garg/tweets/filteredTweets.csv',
                  outFile='/home/garg/tweets/filteredTweetsUpdated.csv',
                  n=0,
                  noTimeout=False):
-
     # read tweets into pandas
     tweets = pd.read_csv(inFile,
                          sep=';',
@@ -42,7 +41,7 @@ def updateTweets(inFile='/home/garg/tweets/filteredTweets.csv',
     tweets = tweets.drop_duplicates(subset='tweetId')
     newLen = len(tweets)
 
-    print("Removed", oldLen-newLen, "duplicates.")
+    print("Removed", oldLen - newLen, "duplicates.")
 
     consumer_key = 'lwIwe4IWCERKF116lHshZEB5Q'
     consumer_secret = 'nYn9B3crAEUV8u0UpvTkglDjYHtzA1pRZBFxSs6xUICUw4WmMt'
@@ -67,19 +66,19 @@ def updateTweets(inFile='/home/garg/tweets/filteredTweets.csv',
     subTweets['updatedTimestamp'] = pd.to_datetime(subTweets['timestamp'])
     subTweets['secondsOld'] = pd.Series()
 
-    requestTimeout = 1/(450/15/60)
-    requestCount = int(n/100)+1
+    requestTimeout = 1 / (450 / 15 / 60)
+    requestCount = int(n / 100) + 1
 
     print("### Request information for", n, "tweets: ###")
     print("- that's", requestCount, "requests")
     if not noTimeout:
         print("- request timeout is set to", requestTimeout, "second (maximum Twitter API Requests are 450/15min)")
-        print("=> This will take at least", requestCount*requestTimeout/60, "minutes!")
+        print("=> This will take at least", requestCount * requestTimeout / 60, "minutes!")
     for i in range(0, n, 100):
         j = i + 100
         if n - i < 100:
             j = n
-        request = subTweets.tweetId[i:j].astype(str).tolist()
+        request = subTweets['tweetId'].astype(str).tolist()
 
         # API-request sometime has internal errors and needs to be retried
         attempts = 0
@@ -101,7 +100,7 @@ def updateTweets(inFile='/home/garg/tweets/filteredTweets.csv',
                 raise e
 
         uts = dt.datetime.now()
-        subTweets['updatedTimestamp'][i:j] = uts
+        subTweets.loc[i:j, 'updatedTimestamp'] = uts
         for tweet in tweetSet:
             subTweets.loc[tweets['tweetId'] == tweet.id, ('retweets',
                                                           'favorites')] = (tweet.retweet_count,
@@ -109,10 +108,11 @@ def updateTweets(inFile='/home/garg/tweets/filteredTweets.csv',
         if not noTimeout:
             time.sleep(requestTimeout)
 
-
     subTweets['secondsOld'] = subTweets.apply(lambda x: (x['updatedTimestamp'] - x['timestamp']).seconds, axis=1)
-    subTweets['retweetsPerSecond'] = subTweets.apply(lambda x: x['retweets'] / x['secondsOld'], axis=1)
-    subTweets['favoritesPerSecond'] = subTweets.apply(lambda x: x['favorites'] / x['secondsOld'], axis=1)
+    # secondsOld turned out as 0 once...
+    subTweets.loc[subTweets['secondsOld'] == 0, 'secondsOld'] = 0.1
+    subTweets.loc['retweetsPerSecond'] = subTweets.apply(lambda x: x['retweets'] / x['secondsOld'], axis=1)
+    subTweets.loc['favoritesPerSecond'] = subTweets.apply(lambda x: x['favorites'] / x['secondsOld'], axis=1)
 
     subTweets.to_csv(outFile,
                      sep=';',
@@ -170,18 +170,18 @@ def main(argv):
         if opt == '-h':
             print(infoString)
             sys.exit()
-        elif opt in ("-i", "--ifile"):\
-            inputfile = arg
-        elif opt in ("-o", "--ofile"):\
-            outputfile = arg
+        elif opt in ("-i", "--ifile"): \
+                inputfile = arg
+        elif opt in ("-o", "--ofile"): \
+                outputfile = arg
         elif opt in ("-n", "--ntweets"): \
-            ntweets = int(arg)
+                ntweets = int(arg)
         elif opt in ("-d", "--dir"): \
-            dir = arg
+                dir = arg
         elif opt in ("-l", "--loop"): \
-            loop = True
+                loop = True
         elif opt in ("-a", "--analysis"): \
-            analysis = True
+                analysis = True
 
     if loop:
         updateTweetsLoop(dir=dir)
