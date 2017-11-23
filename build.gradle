@@ -35,4 +35,5 @@ dependencies {
 	compile 'org.apache.spark:spark-streaming_2.11:2.2.0'
 	compile 'org.apache.spark:spark-mllib_2.11:2.2.0'
     compile 'org.apache.bahir:spark-streaming-twitter_2.11:2.2.0'
+    compile 'com.opencsv:opencsv:4.1'
 }

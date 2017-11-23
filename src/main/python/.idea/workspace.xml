@@ -11,26 +11,25 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="updateTweets.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="updateTweets.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/updateTweets.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="345">
-              <caret line="194" column="0" lean-forward="true" selection-start-line="194" selection-start-column="0" selection-end-line="194" selection-end-column="0" />
+            <state relative-caret-position="510">
+              <caret line="143" column="45" lean-forward="true" selection-start-line="143" selection-start-column="45" selection-end-line="143" selection-end-column="45" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
                 <element signature="e#315#4151#0" expanded="false" />
-                <element signature="e#4185#4905#0" expanded="false" />
-                <element signature="e#4928#6472#0" expanded="false" />
+                <element signature="e#5159#6703#0" expanded="false" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="updateAnalysis.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="updateAnalysis.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/updateAnalysis.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-60">
-              <caret line="197" column="31" lean-forward="true" selection-start-line="197" selection-start-column="31" selection-end-line="197" selection-end-column="31" />
+            <state relative-caret-position="323">
+              <caret line="489" column="57" lean-forward="false" selection-start-line="489" selection-start-column="57" selection-end-line="489" selection-end-column="57" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
                 <element signature="e#350#7174#0" expanded="false" />
@@ -42,7 +41,6 @@
                 <element signature="e#15357#15781#0" expanded="false" />
                 <element signature="e#15842#16247#0" expanded="false" />
                 <element signature="e#16364#17613#0" expanded="false" />
-                <element signature="e#17748#18311#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -90,9 +88,9 @@
         <option value="$PROJECT_DIR$/updateTweetsPythonEnv.py" />
         <option value="$PROJECT_DIR$/updateTweetsCycle.py" />
         <option value="$PROJECT_DIR$/twitterExploration.ipynb" />
+        <option value="$PROJECT_DIR$/updateTweets.py" />
+        <option value="$PROJECT_DIR$/updateTweets.py" />
         <option value="$PROJECT_DIR$/updateAnalysis.py" />
-        <option value="$PROJECT_DIR$/updateTweets.py" />
-        <option value="$PROJECT_DIR$/updateTweets.py" />
       </list>
     </option>
   </component>
@@ -362,8 +360,7 @@
           <folding>
             <element signature="e#0#19#0" expanded="true" />
             <element signature="e#315#4151#0" expanded="false" />
-            <element signature="e#4185#4905#0" expanded="false" />
-            <element signature="e#4928#6472#0" expanded="false" />
+            <element signature="e#5159#6703#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -393,8 +390,7 @@
           <folding>
             <element signature="e#0#19#0" expanded="true" />
             <element signature="e#315#4151#0" expanded="false" />
-            <element signature="e#4185#4905#0" expanded="false" />
-            <element signature="e#4928#6472#0" expanded="false" />
+            <element signature="e#5159#6703#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -407,8 +403,7 @@
           <folding>
             <element signature="e#0#19#0" expanded="true" />
             <element signature="e#315#4151#0" expanded="false" />
-            <element signature="e#4185#4905#0" expanded="false" />
-            <element signature="e#4928#6472#0" expanded="false" />
+            <element signature="e#5159#6703#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -421,8 +416,7 @@
           <folding>
             <element signature="e#0#19#0" expanded="true" />
             <element signature="e#315#4151#0" expanded="false" />
-            <element signature="e#4185#4905#0" expanded="false" />
-            <element signature="e#4928#6472#0" expanded="false" />
+            <element signature="e#5159#6703#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -435,8 +429,7 @@
           <folding>
             <element signature="e#0#19#0" expanded="true" />
             <element signature="e#315#4151#0" expanded="false" />
-            <element signature="e#4185#4905#0" expanded="false" />
-            <element signature="e#4928#6472#0" expanded="false" />
+            <element signature="e#5159#6703#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -449,8 +442,7 @@
           <folding>
             <element signature="e#0#19#0" expanded="true" />
             <element signature="e#315#4151#0" expanded="false" />
-            <element signature="e#4185#4905#0" expanded="false" />
-            <element signature="e#4928#6472#0" expanded="false" />
+            <element signature="e#5159#6703#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -509,10 +501,22 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/updateTweets.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="510">
+          <caret line="143" column="45" lean-forward="true" selection-start-line="143" selection-start-column="45" selection-end-line="143" selection-end-column="45" />
+          <folding>
+            <element signature="e#0#19#0" expanded="true" />
+            <element signature="e#315#4151#0" expanded="false" />
+            <element signature="e#5159#6703#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/updateAnalysis.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-60">
-          <caret line="197" column="31" lean-forward="true" selection-start-line="197" selection-start-column="31" selection-end-line="197" selection-end-column="31" />
+        <state relative-caret-position="323">
+          <caret line="489" column="57" lean-forward="false" selection-start-line="489" selection-start-column="57" selection-end-line="489" selection-end-column="57" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
             <element signature="e#350#7174#0" expanded="false" />
@@ -524,20 +528,6 @@
             <element signature="e#15357#15781#0" expanded="false" />
             <element signature="e#15842#16247#0" expanded="false" />
             <element signature="e#16364#17613#0" expanded="false" />
-            <element signature="e#17748#18311#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/updateTweets.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="345">
-          <caret line="194" column="0" lean-forward="true" selection-start-line="194" selection-start-column="0" selection-end-line="194" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#19#0" expanded="true" />
-            <element signature="e#315#4151#0" expanded="false" />
-            <element signature="e#4185#4905#0" expanded="false" />
-            <element signature="e#4928#6472#0" expanded="false" />
           </folding>
         </state>
       </provider>

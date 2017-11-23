@@ -491,7 +491,6 @@ def savePredictionFiles(probAllHashTagsOccurences,
                                      sep=';',
                                      quotechar='"',
                                      quoting=2)
-
     print("Updated", mainDir + "/pred_hashTags.csv")
 
     tweetCombinations.to_csv(mainDir + "/pred_hashTagCombMetrics.csv",

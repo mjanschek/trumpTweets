@@ -129,12 +129,16 @@ def updateTweetsLoop(dir):
     filteroutputfile = dir + '/filteredTweetsUpdated.csv'
 
     while True:
-        print("Updating", alloutputfile, "...")
-        updateTweets(inFile=allinputfile,
-                     outFile=alloutputfile)
         print("Updating", filteroutputfile, "...")
         updateTweets(inFile=filterinputfile,
                      outFile=filteroutputfile)
+        print("Updating analysis...")
+        updateAnalysis.updateAnalysis(filteredTweetsRepo=filteroutputfile,
+                                      allTweetsRepo=alloutputfile,
+                                      mainDir=dir)
+        print("Updating", alloutputfile, "...")
+        updateTweets(inFile=allinputfile,
+                     outFile=alloutputfile)
         print("Updating analysis...")
         updateAnalysis.updateAnalysis(filteredTweetsRepo=filteroutputfile,
                                       allTweetsRepo=alloutputfile,
