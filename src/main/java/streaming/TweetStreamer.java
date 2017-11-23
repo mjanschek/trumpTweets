@@ -1,7 +1,7 @@
 package streaming;
 
-import application.AppProperties;
-import application.PredictionReader;
+import repositories.AppProperties;
+import repositories.PredictionReader;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -38,7 +38,7 @@ public class TweetStreamer implements java.io.Serializable {
 	private PredictionReader predictions;
 	
 	public TweetStreamer(PredictionReader predictions) {
-		this.setPredictions(predictions);
+		this.predictions = predictions;
 	}
 
 	public void stream() {
@@ -67,29 +67,8 @@ public class TweetStreamer implements java.io.Serializable {
 		 * filter for english tweets exclude retweets and truncated retweets
 		 * also, filter for wanted hashtags
 		 */
-		JavaDStream<Status> englishStatuses = stream.filter(new Function<Status, Boolean>() {
-			@Override
-			public Boolean call(Status tweet) throws Exception {
-				return tweet.getLang().equals("en");
-			}
-		});
-
-		JavaDStream<Status> statusesNoRetweets = englishStatuses.map(new Function<Status, Status>() {
-			@Override
-			public Status call(Status tweet) throws Exception {
-				if(tweet.isRetweet()) {
-					tweet = tweet.getRetweetedStatus();
-				}
-				return tweet;
-			}
-		});
-
-		JavaDStream<Status> statusesNoTruncation = statusesNoRetweets.filter(new Function<Status, Boolean>() {
-			@Override
-			public Boolean call(Status tweet) throws Exception {
-				return !tweet.isTruncated();
-			}
-		});
+		
+		JavaDStream<Status> statusesNoTruncation = filterTweets(stream);
 
 		JavaDStream<Status> wantedHashtags = statusesNoTruncation.filter(filterForHashtags(AppProperties.getHashTagListNormalized()));
 
@@ -108,19 +87,20 @@ public class TweetStreamer implements java.io.Serializable {
 		}
 	}
 
-	public Function<Status, Boolean> filterForHashtags(List <String> hashTagFilterList) { return new Function<Status, Boolean>() {
-		@Override
-		public Boolean call(Status tweet) throws Exception {
-			List <String> hashTagList = new ArrayList<String>();
-			for(HashtagEntity hashTag:tweet.getHashtagEntities()) {
-				//normalize hashtags, ignore casing
-				hashTagList.add(hashTag.getText().toLowerCase());
+	public Function<Status, Boolean> filterForHashtags(List <String> hashTagFilterList) {
+		return new Function<Status, Boolean>() {
+			@Override
+			public Boolean call(Status tweet) throws Exception {
+				List <String> hashTagList = new ArrayList<String>();
+				for(HashtagEntity hashTag:tweet.getHashtagEntities()) {
+					//normalize hashtags, ignore casing
+					hashTagList.add(hashTag.getText().toLowerCase());	
+				}
+				return !Collections.disjoint(hashTagList, hashTagFilterList);
 			}
-			return !Collections.disjoint(hashTagList, hashTagFilterList);
-		}
-	};
+		};
 	}
-
+	
 	public VoidFunction<JavaRDD<Status>> writeTweets(String filePath){return new VoidFunction<JavaRDD<Status>>() {
 		@Override
 		public void call(JavaRDD<Status> allTweets) throws Exception {
@@ -213,6 +193,24 @@ public class TweetStreamer implements java.io.Serializable {
 									isDemocratsTweet,
 									isWashingtonDCTweet),
 							';', '"');
+					
+//					System.out.println(String.join(",", Arrays.asList(timestamp,
+//									userId,
+//									userName,
+//									followers,
+//									tweetId,
+//									hashTagString,
+//									userIdsMentioned,
+//									favorites,
+//									retweets,
+//									place,
+//									text,
+//									textLength,
+//									isTrumpTweet,
+//									isNewsTweet,
+//									isFakeNewsTweet,
+//									isDemocratsTweet,
+//									isWashingtonDCTweet)));
 
 				}catch (Exception e){
 					continue;
@@ -224,6 +222,34 @@ public class TweetStreamer implements java.io.Serializable {
 	};
 	}
 
+	public JavaDStream<Status> filterTweets(JavaReceiverInputDStream<Status> stream){
+		JavaDStream<Status> englishStatuses = stream.filter(new Function<Status, Boolean>() {
+			@Override
+			public Boolean call(Status tweet) throws Exception {
+				return tweet.getLang().equals("en");
+			}
+		});
+
+		JavaDStream<Status> statusesNoRetweets = englishStatuses.map(new Function<Status, Status>() {
+			@Override
+			public Status call(Status tweet) throws Exception {
+				if(tweet.isRetweet()) {
+					tweet = tweet.getRetweetedStatus();
+				}
+				return tweet;
+			}
+		});
+
+		JavaDStream<Status> statusesNoTruncation = statusesNoRetweets.filter(new Function<Status, Boolean>() {
+			@Override
+			public Boolean call(Status tweet) throws Exception {
+				return !tweet.isTruncated();
+			}
+		});
+		
+		return statusesNoTruncation;
+	}
+	
 	public PredictionReader getPredictions() {
 		return predictions;
 	}

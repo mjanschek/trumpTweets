@@ -2,6 +2,9 @@ package application;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+
+import repositories.AppProperties;
+import repositories.PredictionReader;
 import streaming.TweetStreamer;
 
 public class TrumpTweetsApplication {

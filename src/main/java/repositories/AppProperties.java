@@ -1,4 +1,4 @@
-package application;
+package repositories;
 
 import java.io.IOException;
 import java.io.InputStream;

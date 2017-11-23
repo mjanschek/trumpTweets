@@ -1,4 +1,4 @@
-package application;
+package repositories;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -6,11 +6,9 @@ import java.util.List;
 
 import com.opencsv.bean.CsvToBeanBuilder;
 
-import repositories.ComboPrediction;
-import repositories.HashTagPrediction;
+@SuppressWarnings("serial")
+public class PredictionReader implements java.io.Serializable{
 
-public class PredictionReader {
-	
 	private List<ComboPrediction> comboPredictions;
 	
 	private List<HashTagPrediction> hashTagPredictions;	

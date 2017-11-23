@@ -2,9 +2,10 @@ package repositories;
 
 import com.opencsv.bean.CsvBindByName;
 
-public class HashTagPrediction {
+@SuppressWarnings("serial")
+public class HashTagPrediction implements java.io.Serializable {
 
-    @CsvBindByName
+	@CsvBindByName
     private String hashtag;
     
     @CsvBindByName

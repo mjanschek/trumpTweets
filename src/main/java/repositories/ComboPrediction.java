@@ -2,9 +2,10 @@ package repositories;
 
 import com.opencsv.bean.CsvBindByName;
 
-public class ComboPrediction {
+@SuppressWarnings("serial")
+public class ComboPrediction implements java.io.Serializable {
 
-    @CsvBindByName
+	@CsvBindByName
     private boolean isTrumpTweet;
     
     @CsvBindByName
