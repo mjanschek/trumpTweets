@@ -36,7 +36,6 @@ public class TweetStreamer implements java.io.Serializable {
 	
 public void stream() {
 
-    //StreamingExamples.setStreamingLogLevels();
     // Set logging level if log4j not configured (override by adding log4j.properties to classpath)
     if (!Logger.getRootLogger().getAllAppenders().hasMoreElements()) {
       Logger.getRootLogger().setLevel(Level.WARN);
@@ -57,7 +56,7 @@ public void stream() {
     JavaReceiverInputDStream<Status> stream = TwitterUtils.createStream(jssc, filters);
     
     /**
-     * Start of filtering block:
+     * START OF FILTERING BLOCK
      * filter for english tweets exclude retweets and truncated retweets
      * also, filter for wanted hashtags
      */
@@ -85,19 +84,11 @@ public void stream() {
 		}
       });
     
-//    JavaDStream<Status> wantedHashtags = statusesNoTruncation.filter(new Function<Status, Boolean>() {
-//		@Override
-//		public Boolean call(Status tweet) throws Exception {
-//			List <String> hashTagList = new ArrayList<String>();
-//			for(HashtagEntity hashTag:tweet.getHashtagEntities()) {
-//				//normalize hashtags, ignore casing
-//				hashTagList.add(hashTag.getText().toLowerCase());
-//			}
-//			return !Collections.disjoint(hashTagList, AppProperties.getHashTagListNormalized());
-//		}
-//      });
-    
     JavaDStream<Status> wantedHashtags = statusesNoTruncation.filter(filterForHashtags(AppProperties.getHashTagListNormalized()));
+    
+    /**
+     * END OF FILTERING BLOCK
+     */
 
     statusesNoTruncation.foreachRDD(writeTweets(AppProperties.getSaveDir() + "allTweets.csv"));
     wantedHashtags.foreachRDD(writeTweets(AppProperties.getSaveDir() + "filteredTweets.csv"));
