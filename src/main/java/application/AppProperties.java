@@ -9,9 +9,16 @@ import java.util.Properties;
 public class AppProperties {
 	
     private static List<String> hashTagList;
+    
     private static List<String> hashTagListNormalized;
+    
     private static String filters[];
+    
     private static String saveDir;
+    
+    private static String hashTagPredictionsFilename;
+    
+    private static String comboPredictionsFilename;
 
 	public AppProperties() {
 		readPropertyFile();
@@ -42,6 +49,9 @@ public class AppProperties {
 		
 		setFilters(properties.getProperty("filters").split(","));
 		setSaveDir(properties.getProperty("saveDir"));
+
+		setHashTagPredictionsFilename(properties.getProperty("hashTagPredictionsFilename"));
+		setComboPredictionsFilename(properties.getProperty("comboPredictionsFilename"));
 	}
 	
 	public static List<String> getHashTagList() {
@@ -74,6 +84,22 @@ public class AppProperties {
 
 	public static void setSaveDir(String saveDir) {
 		AppProperties.saveDir = saveDir;
+	}
+
+	public static String getHashTagPredictionsFilename() {
+		return hashTagPredictionsFilename;
+	}
+
+	public static void setHashTagPredictionsFilename(String hashTagPredictionsFilename) {
+		AppProperties.hashTagPredictionsFilename = hashTagPredictionsFilename;
+	}
+
+	public static String getComboPredictionsFilename() {
+		return comboPredictionsFilename;
+	}
+
+	public static void setComboPredictionsFilename(String comboPredictionsFilename) {
+		AppProperties.comboPredictionsFilename = comboPredictionsFilename;
 	}
 
 	
