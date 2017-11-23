@@ -17,8 +17,6 @@ jar {
 	file('src/main/resources/*.properties')
 	
     destinationDir = file("/home/garg/tweets/")
-    
-    
 }
 
 copy {

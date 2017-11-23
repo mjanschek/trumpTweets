@@ -78,7 +78,7 @@ def updateTweets(inFile='/home/garg/tweets/filteredTweets.csv',
         j = i + 100
         if n - i < 100:
             j = n
-        request = subTweets['tweetId'].astype(str).tolist()
+        request = subTweets['tweetId'][i:j].astype(str).tolist()
 
         # API-request sometime has internal errors and needs to be retried
         attempts = 0
