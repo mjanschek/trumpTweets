@@ -24,10 +24,10 @@ public class ComboPrediction implements java.io.Serializable {
     private double meanTextLength;
     
     @CsvBindByName
-    private double meanFavPerSec;
+    private double meanFavPerMin;
     
     @CsvBindByName
-    private double meanRTPerSec;
+    private double meanRTPerMin;
     
     @CsvBindByName
     private double meanTweetsPerMinute;
@@ -38,7 +38,7 @@ public class ComboPrediction implements java.io.Serializable {
 	}
 
 	public ComboPrediction(boolean isTrumpTweet, boolean isNewsTweet, boolean isFakeNewsTweet, boolean isDemocratsTweet,
-			boolean isWashingtonDCTweet, double meanTextLength, double meanFavPerSec, double meanRTPerSec,
+			boolean isWashingtonDCTweet, double meanTextLength, double meanFavPerMin, double meanRTPerMin,
 			double meanTweetsPerMinute) {
 		super();
 		this.isTrumpTweet = isTrumpTweet;
@@ -47,8 +47,8 @@ public class ComboPrediction implements java.io.Serializable {
 		this.isDemocratsTweet = isDemocratsTweet;
 		this.isWashingtonDCTweet = isWashingtonDCTweet;
 		this.meanTextLength = meanTextLength;
-		this.meanFavPerSec = meanFavPerSec;
-		this.meanRTPerSec = meanRTPerSec;
+		this.meanFavPerMin = meanFavPerMin;
+		this.meanRTPerMin = meanRTPerMin;
 		this.meanTweetsPerMinute = meanTweetsPerMinute;
 	}
 
@@ -56,8 +56,8 @@ public class ComboPrediction implements java.io.Serializable {
 	public String toString() {
 		return "ComboPrediction [isTrumpTweet=" + isTrumpTweet + ", isNewsTweet=" + isNewsTweet + ", isFakeNewsTweet="
 				+ isFakeNewsTweet + ", isDemocratsTweet=" + isDemocratsTweet + ", isWashingtonDCTweet="
-				+ isWashingtonDCTweet + ", meanTextLength=" + meanTextLength + ", meanFavPerSec=" + meanFavPerSec
-				+ ", meanRTPerSec=" + meanRTPerSec + ", meanTweetsPerMinute=" + meanTweetsPerMinute + "]";
+				+ isWashingtonDCTweet + ", meanTextLength=" + meanTextLength + ", meanFavPerMin=" + meanFavPerMin
+				+ ", meanRTPerMin=" + meanRTPerMin + ", meanTweetsPerMinute=" + meanTweetsPerMinute + "]";
 	}
 
 	public boolean isTrumpTweet() {
@@ -108,20 +108,20 @@ public class ComboPrediction implements java.io.Serializable {
 		this.meanTextLength = meanTextLength;
 	}
 
-	public double getMeanFavPerSec() {
-		return meanFavPerSec;
+	public double getMeanFavPerMin() {
+		return meanFavPerMin;
 	}
 
-	public void setMeanFavPerSec(double meanFavPerSec) {
-		this.meanFavPerSec = meanFavPerSec;
+	public void setMeanFavPerMin(double meanFavPerMin) {
+		this.meanFavPerMin = meanFavPerMin;
 	}
 
-	public double getMeanRTPerSec() {
-		return meanRTPerSec;
+	public double getMeanRTPerMin() {
+		return meanRTPerMin;
 	}
 
-	public void setMeanRTPerSec(double meanRTPerSec) {
-		this.meanRTPerSec = meanRTPerSec;
+	public void setMeanRTPerMin(double meanRTPerMin) {
+		this.meanRTPerMin = meanRTPerMin;
 	}
 
 	public double getMeanTweetsPerMinute() {
@@ -131,5 +131,6 @@ public class ComboPrediction implements java.io.Serializable {
 	public void setMeanTweetsPerMinute(double meanTweetsPerMinute) {
 		this.meanTweetsPerMinute = meanTweetsPerMinute;
 	}
+
 	
 }

@@ -20,6 +20,10 @@ public class AppProperties {
     
     private static String comboPredictionsFilename;
 
+    private static String tweetsSavefile;
+
+    private static String comboSavefile;
+
 	public AppProperties() {
 		readPropertyFile();
 	}
@@ -49,6 +53,9 @@ public class AppProperties {
 		
 		setFilters(properties.getProperty("filters").split(","));
 		setSaveDir(properties.getProperty("saveDir"));
+		
+		setTweetsSavefile(properties.getProperty("tweetsSavefile"));
+		setComboSavefile(properties.getProperty("comboSavefile"));
 
 		setHashTagPredictionsFilename(properties.getProperty("hashTagPredictionsFilename"));
 		setComboPredictionsFilename(properties.getProperty("comboPredictionsFilename"));
@@ -102,5 +109,20 @@ public class AppProperties {
 		AppProperties.comboPredictionsFilename = comboPredictionsFilename;
 	}
 
+	public static String getTweetsSavefile() {
+		return tweetsSavefile;
+	}
+
+	public static void setTweetsSavefile(String tweetsSavefile) {
+		AppProperties.tweetsSavefile = tweetsSavefile;
+	}
+
+	public static String getComboSavefile() {
+		return comboSavefile;
+	}
+
+	public static void setComboSavefile(String comboSavefile) {
+		AppProperties.comboSavefile = comboSavefile;
+	}
 	
 }

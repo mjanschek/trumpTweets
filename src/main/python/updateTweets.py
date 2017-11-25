@@ -111,8 +111,8 @@ def updateTweets(inFile='/home/garg/tweets/filteredTweets.csv',
     subTweets['secondsOld'] = subTweets.apply(lambda x: (x['updatedTimestamp'] - x['timestamp']).seconds, axis=1)
     # secondsOld turned out as 0 once...
     subTweets.loc[subTweets['secondsOld'] == 0, 'secondsOld'] = 0.1
-    subTweets.loc['retweetsPerSecond'] = subTweets.apply(lambda x: x['retweets'] / x['secondsOld'], axis=1)
-    subTweets.loc['favoritesPerSecond'] = subTweets.apply(lambda x: x['favorites'] / x['secondsOld'], axis=1)
+    subTweets.loc['retweetsPerMinute'] = subTweets.apply(lambda x: x['retweets'] / x['secondsOld'] * 60, axis=1)
+    subTweets.loc['favoritesPerMinute'] = subTweets.apply(lambda x: x['favorites'] / x['secondsOld'] * 60, axis=1)
 
     subTweets.to_csv(outFile,
                      sep=';',

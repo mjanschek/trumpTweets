@@ -55,18 +55,18 @@ def updateAnalysis(filteredTweetsRepo="/home/garg/tweets/filteredTweetsUpdated.c
                              'all tweets',
                              plotDir)
 
-    plotMetricPerSecond(filteredTweets,
+    plotMetricPerminutes(filteredTweets,
                         allTweets,
-                        fieldName='retweetsPerSecond',
-                        title='Retweets per second',
-                        xtitle='retweets/second',
+                        fieldName='retweetsPerMinutes',
+                        title='Retweets per minutes',
+                        xtitle='retweets/minutes',
                         plotDir=plotDir)
 
-    plotMetricPerSecond(filteredTweets,
+    plotMetricPerminutes(filteredTweets,
                         allTweets,
-                        fieldName='favoritesPerSecond',
-                        title='Favorites per second',
-                        xtitle='favorites/second',
+                        fieldName='retweetsPerMinutes',
+                        title='Favorites per minutes',
+                        xtitle='favorites/minutes',
                         plotDir=plotDir)
 
     (x, y) = countTags(allTweets)
@@ -106,14 +106,14 @@ def updateAnalysis(filteredTweetsRepo="/home/garg/tweets/filteredTweetsUpdated.c
         'textLength'].mean().to_frame('meanTextLength').reset_index()
     tweetCombinations = tweetCombinations.join(meanDF['meanTextLength'])
     meanDF = allTweets.groupby(['isTrumpTweet', 'isNewsTweet', 'isFakeNewsTweet', 'isDemocratsTweet', 'isWashingtonDCTweet'])[
-        'favoritesPerSecond'].mean().to_frame('meanFavPerSec').reset_index()
-    tweetCombinations = tweetCombinations.join(meanDF['meanFavPerSec'])
+        'retweetsPerMinutes'].mean().to_frame('meanFavPerMin').reset_index()
+    tweetCombinations = tweetCombinations.join(meanDF['meanFavPerMin'])
     meanDF = allTweets.groupby(['isTrumpTweet', 'isNewsTweet', 'isFakeNewsTweet', 'isDemocratsTweet', 'isWashingtonDCTweet'])[
-        'retweetsPerSecond'].mean().to_frame('meanRTPerSec').reset_index()
-    tweetCombinations = tweetCombinations.join(meanDF['meanRTPerSec'])
+        'retweetsPerMinutes'].mean().to_frame('meanRTPerMin').reset_index()
+    tweetCombinations = tweetCombinations.join(meanDF['meanRTPerMin'])
 
     allTweets['timestamp'] = pd.to_datetime(allTweets['timestamp'])
-    allTweets['tsMinute'] = allTweets['timestamp'].apply(lambda x: x.replace(second=0, microsecond=0))
+    allTweets['tsMinute'] = allTweets['timestamp'].apply(lambda x: x.replace(seconds=0, microseconds=0))
     meanAllTweetsPerMinute = allTweets.groupby('tsMinute').size().mean()
     tpmDF = allTweets.groupby(
         ['isTrumpTweet', 'isNewsTweet', 'isFakeNewsTweet', 'isDemocratsTweet', 'isWashingtonDCTweet',
@@ -308,7 +308,7 @@ def plotTextLengthComparison(df1,
     print("- updated", plotDir + 'tl_' + name1.replace(" ", "_") + '.html')
 
 
-def plotMetricPerSecond(df1,
+def plotMetricPerminutes(df1,
                         df2,
                         fieldName,
                         title,
