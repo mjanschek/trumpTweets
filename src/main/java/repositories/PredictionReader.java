@@ -10,17 +10,12 @@ import com.opencsv.bean.CsvToBeanBuilder;
 @SuppressWarnings("serial")
 public class PredictionReader implements java.io.Serializable{
 
-	private List<ComboPrediction> comboPredictions;
+	private List<TimeComboPrediction> timeComboPrediction;
 	
-	private List<HashTagPrediction> hashTagPredictions;	
-	
-	private String comboPredictionsFilepath;
-	
-	private String hashTagPredictionsFilepath;
+	private String timeComboPredictionFilepath;
 	
 	public PredictionReader() {
-		setComboPredictionsFilepath(AppProperties.getSaveDir() + AppProperties.getComboPredictionsFilename());
-		setHashTagPredictionsFilepath(AppProperties.getSaveDir() + AppProperties.getHashTagPredictionsFilename());
+		setTimeComboPredictionFilepath(AppProperties.getSaveDir() + AppProperties.getPredictionsFilename());
 		try {
 			updatePredictions();
 		} catch (IllegalStateException | FileNotFoundException e) {
@@ -29,67 +24,38 @@ public class PredictionReader implements java.io.Serializable{
 		}
 	}
 
-	public void updateComboPredictions() throws IllegalStateException, FileNotFoundException {
-		setComboPredictions(new CsvToBeanBuilder<ComboPrediction>(new FileReader(getComboPredictionsFilepath()))
+	public void updateTimeComboPrediction() throws IllegalStateException, FileNotFoundException {
+		setTimeComboPrediction(new CsvToBeanBuilder<TimeComboPrediction>(new FileReader(getTimeComboPredictionFilepath()))
 				.withSeparator(';')
 				.withQuoteChar('"')
-				.withType(ComboPrediction.class)
-				.build()
-				.parse());
-	}
-	
-	public void updateHashTagPredictions() throws IllegalStateException, FileNotFoundException {
-		setHashTagPredictions(new CsvToBeanBuilder<HashTagPrediction>(new FileReader(getHashTagPredictionsFilepath()))
-				.withSeparator(';')
-				.withQuoteChar('"')
-				.withType(HashTagPrediction.class)
+				.withType(TimeComboPrediction.class)
 				.build()
 				.parse());
 	}
 	
 	public void updatePredictions() throws IllegalStateException, FileNotFoundException {
-		updateComboPredictions();
-		updateHashTagPredictions();
-	}
-	
-	public HashMap<String, HashTagPrediction> getHashTagPredictionHashMap(){
-		HashMap<String, HashTagPrediction> hashTagMap = new HashMap<String, HashTagPrediction>();
-		for (HashTagPrediction hashTagPrediction : getHashTagPredictions()) {
-			hashTagMap.put(hashTagPrediction.getHashtag(), hashTagPrediction);
-		}
-		return hashTagMap;
+		setTimeComboPrediction(new CsvToBeanBuilder<TimeComboPrediction>(new FileReader(getTimeComboPredictionFilepath()))
+				.withSeparator(';')
+				.withQuoteChar('"')
+				.withType(TimeComboPrediction.class)
+				.build()
+				.parse());
 	}
 
-	public List<ComboPrediction> getComboPredictions() {
-		return comboPredictions;
+	public List<TimeComboPrediction> getTimeComboPrediction() {
+		return timeComboPrediction;
 	}
 
-	public void setComboPredictions(List<ComboPrediction> comboPredictions) {
-		this.comboPredictions = comboPredictions;
+	public void setTimeComboPrediction(List<TimeComboPrediction> timeComboPrediction) {
+		this.timeComboPrediction = timeComboPrediction;
 	}
 
-	public List<HashTagPrediction> getHashTagPredictions() {
-		return hashTagPredictions;
+	public String getTimeComboPredictionFilepath() {
+		return timeComboPredictionFilepath;
 	}
 
-	public void setHashTagPredictions(List<HashTagPrediction> hashTagPredictions) {
-		this.hashTagPredictions = hashTagPredictions;
-	}
-
-	public String getComboPredictionsFilepath() {
-		return comboPredictionsFilepath;
-	}
-
-	public void setComboPredictionsFilepath(String comboPredictionsFilepath) {
-		this.comboPredictionsFilepath = comboPredictionsFilepath;
-	}
-
-	public String getHashTagPredictionsFilepath() {
-		return hashTagPredictionsFilepath;
-	}
-
-	public void setHashTagPredictionsFilepath(String hashTagPredictionsFilepath) {
-		this.hashTagPredictionsFilepath = hashTagPredictionsFilepath;
+	public void setTimeComboPredictionFilepath(String timeComboPredictionFilepath) {
+		this.timeComboPredictionFilepath = timeComboPredictionFilepath;
 	}
 	
 }

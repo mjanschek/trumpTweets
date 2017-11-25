@@ -67,10 +67,8 @@ public class TweetStreamer implements java.io.Serializable {
 		jssc.sparkContext().setLogLevel("ERROR");
 		JavaReceiverInputDStream<Status> stream = TwitterUtils.createStream(jssc, filters);
 		
-		JavaDStream<Status> statusesNoTruncation = filterTweets(stream);
-		
-		JavaPairDStream<Status,Combo> tweetsComboMatch = statusesNoTruncation
-				.mapToPair(new PairFunction<Status,Status,Combo>(){
+		JavaPairDStream<Status,Combo> tweetsComboMatch = 
+				filterTweets(stream).mapToPair(new PairFunction<Status,Status,Combo>(){
 					@Override
 					public Tuple2<Status,Combo> call(Status status) throws Exception {
 
@@ -90,9 +88,10 @@ public class TweetStreamer implements java.io.Serializable {
 					}
 				});
 
+		tweetsComboMatch.foreachRDD(writeTweets(AppProperties.getSaveDir() + AppProperties.getTweetsSavefile()));
 		
-		JavaPairDStream<Combo, Tuple5<Integer,Integer,Integer,Integer,Integer>> comboMetrics = tweetsComboMatch.mapToPair(
-				new PairFunction<Tuple2<Status,Combo>,Combo,Tuple5<Integer,Integer,Integer,Integer,Integer>>(){
+		JavaPairDStream<Combo, Tuple5<Integer, Integer, Integer, Integer, Integer>> tweetsComboCounts =
+				tweetsComboMatch.mapToPair(new PairFunction<Tuple2<Status,Combo>,Combo,Tuple5<Integer,Integer,Integer,Integer,Integer>>(){
 
 					@Override
 					public Tuple2<Combo, Tuple5<Integer,Integer,Integer,Integer,Integer>> call(Tuple2<Status, Combo> input) throws Exception {
@@ -116,12 +115,10 @@ public class TweetStreamer implements java.io.Serializable {
 						
 						return new Tuple2<>(input._2,new Tuple5<>(count, textLength, totalHashtagCount, trumpCount, sensitiveCount));
 					}
-				});
-
-	    JavaPairDStream<Combo, Tuple5<Integer,Integer,Integer,Integer,Integer>> sumComboPerMinute = comboMetrics.reduceByKeyAndWindow(
-	      new Function2<Tuple5<Integer,Integer,Integer,Integer,Integer>,
-				      	Tuple5<Integer,Integer,Integer,Integer,Integer>,
-				      	Tuple5<Integer,Integer,Integer,Integer,Integer>>() {
+				})
+								.reduceByKeyAndWindow(new Function2<Tuple5<Integer,Integer,Integer,Integer,Integer>,
+															Tuple5<Integer,Integer,Integer,Integer,Integer>,
+															Tuple5<Integer,Integer,Integer,Integer,Integer>>() {
 	        @Override
 	        public Tuple5<Integer,Integer,Integer,Integer,Integer> call(Tuple5<Integer,Integer,Integer,Integer,Integer> a,
 	        															Tuple5<Integer,Integer,Integer,Integer,Integer> b) {
@@ -135,10 +132,9 @@ public class TweetStreamer implements java.io.Serializable {
 	        	return new Tuple5<>(count, textLength, totalHashtagCount, trumpCount, sensitiveCount);
 	        }
 	      }, new Duration(60*1000));
-
-	    tweetsComboMatch.foreachRDD(writeTweets(AppProperties.getSaveDir() + AppProperties.getTweetsSavefile()));
-	    sumComboPerMinute.foreachRDD(writeComboCounts(AppProperties.getSaveDir() + AppProperties.getComboSavefile()));		
 		
+		tweetsComboCounts.foreachRDD(writeComboCounts(AppProperties.getSaveDir() + AppProperties.getComboSavefile()));
+
 		jssc.start();
 		try {
 			jssc.awaitTermination();
@@ -166,13 +162,13 @@ public class TweetStreamer implements java.io.Serializable {
 				FileWriter writer = new FileWriter(f,true);
 				if(firstLine) {
 					String header = "\"timestamp\";"
-									+ new Combo().getCsvHeader()
-									+ "\"userName\";"
+									+ new Combo().getCsvHeader() + ";"
 									+ "\"count\";"
 									+ "\"meanTextLength\";"
 									+ "\"totalHashtagCount\";"
 									+ "\"totalTrumpCount\";"
-									+ "\"totalSensitiveCount\""								  + "\n";
+									+ "\"totalSensitiveCount\""
+									+ "\n";
 					writer.write(header);
 				}
 				
@@ -220,6 +216,7 @@ public class TweetStreamer implements java.io.Serializable {
 			}
 		};
     }
+ 	
 	
 	public VoidFunction<JavaPairRDD<Status, Combo>> writeTweets(String filePath){
 		return new VoidFunction<JavaPairRDD<Status, Combo>>() {
@@ -323,16 +320,16 @@ public class TweetStreamer implements java.io.Serializable {
 	};
 	}
 	
+	
 
 	public JavaDStream<Status> filterTweets(JavaReceiverInputDStream<Status> stream){
-		JavaDStream<Status> englishStatuses = stream.filter(new Function<Status, Boolean>() {
+		return stream.filter(new Function<Status, Boolean>() {
 			@Override
 			public Boolean call(Status tweet) throws Exception {
 				return tweet.getLang().equals("en");
 			}
-		});
-
-		JavaDStream<Status> statusesNoRetweets = englishStatuses.map(new Function<Status, Status>() {
+		})
+					 .map(new Function<Status, Status>() {
 			@Override
 			public Status call(Status tweet) throws Exception {
 				if(tweet.isRetweet()) {
@@ -340,17 +337,16 @@ public class TweetStreamer implements java.io.Serializable {
 				}
 				return tweet;
 			}
-		});
-
-		JavaDStream<Status> statusesNoTruncation = statusesNoRetweets.filter(new Function<Status, Boolean>() {
+		})
+					 .filter(new Function<Status, Boolean>() {
 			@Override
 			public Boolean call(Status tweet) throws Exception {
 				return !tweet.isTruncated();
 			}
 		});
 		
-		return statusesNoTruncation;
 	}
+	
 	
 	public PredictionReader getPredictions() {
 		return predictions;

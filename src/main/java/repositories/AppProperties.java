@@ -16,9 +16,7 @@ public class AppProperties {
     
     private static String saveDir;
     
-    private static String hashTagPredictionsFilename;
-    
-    private static String comboPredictionsFilename;
+    private static String predictionsFilename;
 
     private static String tweetsSavefile;
 
@@ -57,8 +55,7 @@ public class AppProperties {
 		setTweetsSavefile(properties.getProperty("tweetsSavefile"));
 		setComboSavefile(properties.getProperty("comboSavefile"));
 
-		setHashTagPredictionsFilename(properties.getProperty("hashTagPredictionsFilename"));
-		setComboPredictionsFilename(properties.getProperty("comboPredictionsFilename"));
+		setPredictionsFilename(properties.getProperty("predictionsFilename"));
 	}
 	
 	public static List<String> getHashTagList() {
@@ -93,20 +90,12 @@ public class AppProperties {
 		AppProperties.saveDir = saveDir;
 	}
 
-	public static String getHashTagPredictionsFilename() {
-		return hashTagPredictionsFilename;
+	public static String getPredictionsFilename() {
+		return predictionsFilename;
 	}
 
-	public static void setHashTagPredictionsFilename(String hashTagPredictionsFilename) {
-		AppProperties.hashTagPredictionsFilename = hashTagPredictionsFilename;
-	}
-
-	public static String getComboPredictionsFilename() {
-		return comboPredictionsFilename;
-	}
-
-	public static void setComboPredictionsFilename(String comboPredictionsFilename) {
-		AppProperties.comboPredictionsFilename = comboPredictionsFilename;
+	public static void setPredictionsFilename(String predictionsFilename) {
+		AppProperties.predictionsFilename = predictionsFilename;
 	}
 
 	public static String getTweetsSavefile() {
