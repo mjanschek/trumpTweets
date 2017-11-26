@@ -26,7 +26,7 @@ public class TimeComboPrediction implements java.io.Serializable {
     private boolean isDemocratsTweet;
     
     @CsvBindByName
-    private boolean isWashingtonDCTweet;
+    private boolean isPoliticsTweet;
     
     @CsvBindByName
     private double count;
@@ -50,7 +50,7 @@ public class TimeComboPrediction implements java.io.Serializable {
 	}
 
 	public TimeComboPrediction(Combo combo, Time time, boolean isTrumpTweet, boolean isNewsTweet,
-			boolean isFakeNewsTweet, boolean isDemocratsTweet, boolean isWashingtonDCTweet, double count,
+			boolean isFakeNewsTweet, boolean isDemocratsTweet, boolean isPoliticsTweet, double count,
 			double meanTextLength, double totalHashtagCount, double totalTrumpCount, double totalSensitiveCount) {
 		super();
 		this.combo = combo;
@@ -59,7 +59,7 @@ public class TimeComboPrediction implements java.io.Serializable {
 		this.isNewsTweet = isNewsTweet;
 		this.isFakeNewsTweet = isFakeNewsTweet;
 		this.isDemocratsTweet = isDemocratsTweet;
-		this.isWashingtonDCTweet = isWashingtonDCTweet;
+		this.isPoliticsTweet = isPoliticsTweet;
 		this.count = count;
 		this.meanTextLength = meanTextLength;
 		this.totalHashtagCount = totalHashtagCount;
@@ -71,7 +71,7 @@ public class TimeComboPrediction implements java.io.Serializable {
 	public String toString() {
 		return "TimeComboPrediction [combo=" + combo + ", time=" + time + ", isTrumpTweet=" + isTrumpTweet
 				+ ", isNewsTweet=" + isNewsTweet + ", isFakeNewsTweet=" + isFakeNewsTweet + ", isDemocratsTweet="
-				+ isDemocratsTweet + ", isWashingtonDCTweet=" + isWashingtonDCTweet + ", count=" + count
+				+ isDemocratsTweet + ", isPoliticsTweet=" + isPoliticsTweet + ", count=" + count
 				+ ", meanTextLength=" + meanTextLength + ", totalHashtagCount=" + totalHashtagCount
 				+ ", totalTrumpCount=" + totalTrumpCount + ", totalSensitiveCount=" + totalSensitiveCount + "]";
 	}
@@ -128,13 +128,13 @@ public class TimeComboPrediction implements java.io.Serializable {
 		combo.setDemocratsTweet(isDemocratsTweet);
 	}
 
-	public boolean isWashingtonDCTweet() {
-		return isWashingtonDCTweet;
+	public boolean isPoliticsTweet() {
+		return isPoliticsTweet;
 	}
 
-	public void setWashingtonDCTweet(boolean isWashingtonDCTweet) {
-		this.isWashingtonDCTweet = isWashingtonDCTweet;
-		combo.setWashingtonDCTweet(isWashingtonDCTweet);
+	public void setPoliticsTweet(boolean isPoliticsTweet) {
+		this.isPoliticsTweet = isPoliticsTweet;
+		combo.setPoliticsTweet(isPoliticsTweet);
 	}
 
 	public double getCount() {

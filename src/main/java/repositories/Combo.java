@@ -11,7 +11,7 @@ public class Combo implements java.io.Serializable {
     
     private boolean isDemocratsTweet;
     
-    private boolean isWashingtonDCTweet;
+    private boolean isPoliticsTweet;
 
 	public Combo() {
 		super();
@@ -19,13 +19,13 @@ public class Combo implements java.io.Serializable {
 	}
 
 	public Combo(boolean isTrumpTweet, boolean isNewsTweet, boolean isFakeNewsTweet, boolean isDemocratsTweet,
-			boolean isWashingtonDCTweet) {
+			boolean isPoliticsTweet) {
 		super();
 		this.isTrumpTweet = isTrumpTweet;
 		this.isNewsTweet = isNewsTweet;
 		this.isFakeNewsTweet = isFakeNewsTweet;
 		this.isDemocratsTweet = isDemocratsTweet;
-		this.isWashingtonDCTweet = isWashingtonDCTweet;
+		this.isPoliticsTweet = isPoliticsTweet;
 	}
 
     @Override
@@ -45,12 +45,12 @@ public class Combo implements java.io.Serializable {
 	@Override
 	public String toString() {
 		return "Combo [isTrumpTweet=" + isTrumpTweet + ", isNewsTweet=" + isNewsTweet + ", isFakeNewsTweet="
-				+ isFakeNewsTweet + ", isDemocratsTweet=" + isDemocratsTweet + ", isWashingtonDCTweet="
-				+ isWashingtonDCTweet + "]";
+				+ isFakeNewsTweet + ", isDemocratsTweet=" + isDemocratsTweet + ", isPoliticsTweet="
+				+ isPoliticsTweet + "]";
 	}
 	
 	public String getCsvHeader() {
-		return "\"isTrumpTweet\";\"isNewsTweet\";\"isFakeNewsTweet\";\"isDemocratsTweet\";\"isWashingtonDCTweet\"";
+		return "\"isTrumpTweet\";\"isNewsTweet\";\"isFakeNewsTweet\";\"isDemocratsTweet\";\"isPoliticsTweet\"";
 	}
 
 	public boolean isTrumpTweet() {
@@ -85,12 +85,12 @@ public class Combo implements java.io.Serializable {
 		this.isDemocratsTweet = isDemocratsTweet;
 	}
 
-	public boolean isWashingtonDCTweet() {
-		return isWashingtonDCTweet;
+	public boolean isPoliticsTweet() {
+		return isPoliticsTweet;
 	}
 
-	public void setWashingtonDCTweet(boolean isWashingtonDCTweet) {
-		this.isWashingtonDCTweet = isWashingtonDCTweet;
+	public void setPoliticsTweet(boolean isPoliticsTweet) {
+		this.isPoliticsTweet = isPoliticsTweet;
 	}
     
 }

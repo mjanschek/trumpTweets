@@ -5,10 +5,11 @@ import java.io.IOException;
 import repositories.AppProperties;
 import repositories.PredictionReader;
 import streaming.TweetStreamer;
+import twitter4j.TwitterException;
 
 public class TrumpTweetsApplication {
 
-	public static void main(String[] args) throws FileNotFoundException, IOException {
+	public static void main(String[] args) throws FileNotFoundException, IOException{
 		// TODO Auto-generated method stub
 		new AppProperties();
 		
@@ -28,7 +29,19 @@ public class TrumpTweetsApplication {
 		}
 		
 		TweetStreamer streamer = new TweetStreamer(predictions);
-		streamer.stream();
+		
+		int retry = 0;
+		while(true) {
+			try{
+				streamer.stream();
+			}catch(TwitterException e){
+				retry++;
+				if(retry==5) {
+					break;
+				}
+				continue;
+			}
+		}
 
 	}
 

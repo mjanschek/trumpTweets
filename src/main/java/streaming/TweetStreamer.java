@@ -32,6 +32,7 @@ import org.apache.spark.streaming.twitter.TwitterUtils;
 
 import twitter4j.HashtagEntity;
 import twitter4j.Status;
+import twitter4j.TwitterException;
 import twitter4j.UserMentionEntity;
 
 
@@ -48,7 +49,7 @@ public class TweetStreamer implements java.io.Serializable {
 		this.predictions = predictions;
 	}
 
-	public void stream() {
+	public void stream() throws TwitterException {
 
 		// Set logging level if log4j not configured (override by adding log4j.properties to classpath)
 		if (!Logger.getRootLogger().getAllAppenders().hasMoreElements()) {
@@ -70,23 +71,24 @@ public class TweetStreamer implements java.io.Serializable {
 		JavaReceiverInputDStream<Status> stream = TwitterUtils.createStream(jssc, filters);
 		
 		JavaPairDStream<Status,Combo> tweetsComboMatch = 
-				filterTweets(stream).mapToPair(new PairFunction<Status,Status,Combo>(){
+				filterTweets(stream)
+				.mapToPair(new PairFunction<Status,Status,Combo>(){
 					@Override
 					public Tuple2<Status,Combo> call(Status status) throws Exception {
 
 						List <String> hashTagList = new ArrayList<String>();
 						for(HashtagEntity hashTag:status.getHashtagEntities()) {
 							//normalize hashtags, ignore casing
-							hashTagList.add(hashTag.getText().toLowerCase());	
+							hashTagList.add(hashTag.getText().toLowerCase());
 						}
 						boolean hasTrumpHashtag = hashTagList.contains("trump");
 						boolean hasNewsHashtag = hashTagList.contains("news");
 						boolean hasFakeNewsHashtag = hashTagList.contains("fakenews");
 						boolean hasDemocratsHashtag = hashTagList.contains("democrats");
-						boolean hasWdcHashtag = hashTagList.contains("washingtondc");
+						boolean hasPoliticsHashtag = hashTagList.contains("politics");
 						
 						return new Tuple2<>(status, 
-								new Combo(hasTrumpHashtag,hasNewsHashtag,hasFakeNewsHashtag,hasDemocratsHashtag,hasWdcHashtag));
+								new Combo(hasTrumpHashtag,hasNewsHashtag,hasFakeNewsHashtag,hasDemocratsHashtag,hasPoliticsHashtag));
 					}
 				});
 
@@ -237,7 +239,7 @@ public class TweetStreamer implements java.io.Serializable {
 										Boolean.toString(combo.isNewsTweet()),
 										Boolean.toString(combo.isFakeNewsTweet()),
 										Boolean.toString(combo.isDemocratsTweet()),
-										Boolean.toString(combo.isWashingtonDCTweet()),
+										Boolean.toString(combo.isPoliticsTweet()),
 										Double.toString(count),
 										Double.toString(meanTextLength),
 										Integer.toString(totalHashtagCount),
@@ -334,7 +336,7 @@ public class TweetStreamer implements java.io.Serializable {
 					String isNewsTweet 			= Boolean.toString(combo.isNewsTweet());
 					String isFakeNewsTweet 		= Boolean.toString(combo.isFakeNewsTweet());
 					String isDemocratsTweet 	= Boolean.toString(combo.isDemocratsTweet());
-					String isWashingtonDCTweet 	= Boolean.toString(combo.isWashingtonDCTweet());
+					String isPoliticsTweet 		= Boolean.toString(combo.isPoliticsTweet());
 
 					CSVUtils.writeLine(writer,
 							Arrays.asList(timestamp,
@@ -353,7 +355,7 @@ public class TweetStreamer implements java.io.Serializable {
 									isNewsTweet,
 									isFakeNewsTweet,
 									isDemocratsTweet,
-									isWashingtonDCTweet
+									isPoliticsTweet
 									),
 							';', '"');
 
@@ -376,13 +378,10 @@ public class TweetStreamer implements java.io.Serializable {
 				return tweet.getLang().equals("en");
 			}
 		})
-					 .map(new Function<Status, Status>() {
+					 .filter(new Function<Status, Boolean>() {
 			@Override
-			public Status call(Status tweet) throws Exception {
-				if(tweet.isRetweet()) {
-					tweet = tweet.getRetweetedStatus();
-				}
-				return tweet;
+			public Boolean call(Status tweet) throws Exception {
+				return !tweet.isRetweet();
 			}
 		})
 					 .filter(new Function<Status, Boolean>() {
