@@ -3,20 +3,34 @@ package application;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import repositories.AppProperties;
-import repositories.PredictionReader;
 import streaming.TweetStreamer;
+import tools.PredictionReader;
 import twitter4j.TwitterException;
 
+/**
+ * This class:
+ * * parses a csv file with predictions
+ * * starts a Spark Stream
+ * * writes date into up to three csv files
+ */
 public class TrumpTweetsApplication {
 
 	public static void main(String[] args) throws FileNotFoundException, IOException{
-		// TODO Auto-generated method stub
+		/*
+		 * Read properties file and save as static object
+		 */
 		new AppProperties();
 		
+		
+		/**
+		 * Read csv file:
+		 * * parse csv
+		 * * write into list of TimeComboPrediction objects
+		 * * transform this list into a HashMap
+		 * 
+		 * this takes a while...
+		 */		
 		PredictionReader predictions = null;
-		
-		
-		// this takes a while...
 		if(AppProperties.isUsePredictions()) {
 			System.out.println("Reading Predictions...");
 			double start = System.currentTimeMillis();
@@ -30,9 +44,14 @@ public class TrumpTweetsApplication {
 		
 		TweetStreamer streamer = new TweetStreamer(predictions);
 		
+		/**
+		 * In tests, spark sometimes lost connection to unknown reasons. 
+		 * This "retry" expression shall cover that to a certain point
+		 */
 		int retry = 0;
 		while(true) {
 			try{
+				//start stream application
 				streamer.stream();
 			}catch(TwitterException e){
 				retry++;

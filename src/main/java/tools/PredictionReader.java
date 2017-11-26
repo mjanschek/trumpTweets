@@ -1,4 +1,4 @@
-package repositories;
+package tools;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -7,6 +7,12 @@ import java.util.List;
 
 import com.opencsv.bean.CsvToBeanBuilder;
 
+import repositories.AppProperties;
+import repositories.TimeComboPrediction;
+
+/*
+ * class for reading the predictions csv file
+ */
 @SuppressWarnings("serial")
 public class PredictionReader implements java.io.Serializable{
 
@@ -16,26 +22,23 @@ public class PredictionReader implements java.io.Serializable{
 	
 	private String timeComboPredictionFilepath;
 	
+	/*
+	 * read csv file on creation, use filepath given by properties
+	 */
 	public PredictionReader() {
 		setTimeComboPredictionFilepath(AppProperties.getSaveDir() + AppProperties.getPredictionsFilename());
 		try {
-			updatePredictions();
+			updateTimeComboPredictionList();
 		} catch (IllegalStateException | FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
+	/*
+	 * read csv file into a List<TimeComboPrediction> object
+	 * after this, build the HashMap
+	 */
 	public void updateTimeComboPredictionList() throws IllegalStateException, FileNotFoundException {
-		setTimeComboPredictionList(new CsvToBeanBuilder<TimeComboPrediction>(new FileReader(getTimeComboPredictionFilepath()))
-				.withSeparator(';')
-				.withQuoteChar('"')
-				.withType(TimeComboPrediction.class)
-				.build()
-				.parse());
-	}
-	
-	public void updatePredictions() throws IllegalStateException, FileNotFoundException {
 		setTimeComboPredictionList(new CsvToBeanBuilder<TimeComboPrediction>(new FileReader(getTimeComboPredictionFilepath()))
 				.withSeparator(';')
 				.withQuoteChar('"')
@@ -45,6 +48,9 @@ public class PredictionReader implements java.io.Serializable{
 		buildHashMap();
 	}
 	
+	/*
+	 * build the HashMap, use combination of flag-combo and time string as key
+	 */
 	public void buildHashMap() {
 		timeComboPredictionHashMap = new HashMap<String, TimeComboPrediction>();
 		for (TimeComboPrediction tcp : timeComboPredictionList) {
@@ -52,6 +58,9 @@ public class PredictionReader implements java.io.Serializable{
 		}
 	}
 
+	/*
+	 * Getters and Setters...
+	 */
 	public List<TimeComboPrediction> getTimeComboPredictionList() {
 		return timeComboPredictionList;
 	}

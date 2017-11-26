@@ -1,5 +1,11 @@
 package repositories;
 
+/*
+ * object for hashtag combinations
+ * this object is used to provide (hopefully) easier readability of spark code
+ * 
+ * essentially, this is a boolean[5] array with some functionality
+ */
 @SuppressWarnings("serial")
 public class Combo implements java.io.Serializable {
 	
@@ -28,6 +34,9 @@ public class Combo implements java.io.Serializable {
 		this.isPoliticsTweet = isPoliticsTweet;
 	}
 
+	/*
+	 * hashCode() and equals() had to be customized for spark joining, merging, etc.
+	 */
     @Override
     public int hashCode() {
        return 371 * toString().hashCode();
@@ -49,6 +58,9 @@ public class Combo implements java.io.Serializable {
 				+ isPoliticsTweet + "]";
 	}
 	
+	/*
+	 * Getters and Setters...
+	 */	
 	public String getCsvHeader() {
 		return "\"isTrumpTweet\";\"isNewsTweet\";\"isFakeNewsTweet\";\"isDemocratsTweet\";\"isPoliticsTweet\"";
 	}

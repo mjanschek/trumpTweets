@@ -5,6 +5,11 @@ import java.sql.Time;
 
 import com.opencsv.bean.CsvBindByName;
 
+/*
+ * This repository enables comfortable csv parsing via annotations
+ * 
+ * The TimeComboPrediction object is a complete prediction for a hashtag combination (Combo object) and a time
+ */
 @SuppressWarnings("serial")
 public class TimeComboPrediction implements java.io.Serializable {
 	
@@ -75,7 +80,12 @@ public class TimeComboPrediction implements java.io.Serializable {
 				+ ", meanTextLength=" + meanTextLength + ", totalHashtagCount=" + totalHashtagCount
 				+ ", totalTrumpCount=" + totalTrumpCount + ", totalSensitiveCount=" + totalSensitiveCount + "]";
 	}
-
+	
+	/*
+	 * Getters and Setters
+	 * 
+	 * the boolean set functions also directly manipulate the Combo() object of this class 
+	 */
 	public Combo getCombo() {
 		return combo;
 	}

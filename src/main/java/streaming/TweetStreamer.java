@@ -2,14 +2,15 @@ package streaming;
 
 import repositories.AppProperties;
 import repositories.Combo;
-import repositories.PredictionReader;
 import repositories.TimeComboPrediction;
 import scala.Tuple2;
 import scala.Tuple3;
 import scala.Tuple5;
+import tools.CSVUtils;
+import tools.PredictionReader;
+
 import java.io.File;
 import java.io.FileWriter;
-import java.sql.Time;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,8 +41,10 @@ import twitter4j.UserMentionEntity;
 
 
 /**
- * Displays the most positive hash tags by joining the streaming Twitter data with a static RDD of
- * the AFINN word list (http://neuro.imm.dtu.dk/wiki/AFINN)
+ * This class:
+ * * parses a csv file with predictions
+ * * starts a Spark Stream
+ * * writes date into up to three csv files
  */
 @SuppressWarnings("serial")
 public class TweetStreamer implements java.io.Serializable {

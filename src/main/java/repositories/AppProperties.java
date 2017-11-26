@@ -6,6 +6,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+/*
+ * Repository for static properties
+ */
 public class AppProperties {
 	
     private static List<String> hashTagList;
@@ -32,12 +35,19 @@ public class AppProperties {
 
     private static String comboSavefile;
 
+	/*
+	 * Read properties file on creation
+	 */
 	public AppProperties() {
 		readPropertyFile();
 	}
 	
+	/*
+	 * Read properties file and fill static AppProperties instance
+	 */
 	private void readPropertyFile() {
 		
+		// read properties
 		Properties properties = new Properties();
 		try {
 			InputStream file = this.getClass().getResourceAsStream("/application.properties");
@@ -46,6 +56,8 @@ public class AppProperties {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		// string arrays
 		String hashTags[] = properties.getProperty("hashtags").split(",");
 		
 		List<String> hashTagList = new ArrayList<String>();
@@ -56,6 +68,7 @@ public class AppProperties {
 			hashTagListNormalized.add(hashtag.toLowerCase());
 		}
 		
+		// fill static values
 		setHashTagList(hashTagList);
 		setHashTagListNormalized(hashTagListNormalized);
 		
@@ -75,6 +88,9 @@ public class AppProperties {
 		setPredictionsEvalFilename(properties.getProperty("predictionsEvalFilename"));
 	}
 
+	/*
+	 * Getters and Setters...
+	 */	
 	public static List<String> getHashTagList() {
 		return hashTagList;
 	}
