@@ -3,13 +3,15 @@ package streaming;
 import repositories.AppProperties;
 import repositories.Combo;
 import repositories.PredictionReader;
+import repositories.TimeComboPrediction;
 import scala.Tuple2;
 import scala.Tuple5;
 import java.io.File;
 import java.io.FileWriter;
-
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -88,7 +90,9 @@ public class TweetStreamer implements java.io.Serializable {
 					}
 				});
 
-		tweetsComboMatch.foreachRDD(writeTweets(AppProperties.getSaveDir() + AppProperties.getTweetsSavefile()));
+		if(AppProperties.isWriteTweetsSavefile()) {
+			tweetsComboMatch.foreachRDD(writeTweets(AppProperties.getSaveDir() + AppProperties.getTweetsSavefile()));
+		}
 		
 		JavaPairDStream<Combo, Tuple5<Integer, Integer, Integer, Integer, Integer>> tweetsComboCounts =
 				tweetsComboMatch.mapToPair(new PairFunction<Tuple2<Status,Combo>,Combo,Tuple5<Integer,Integer,Integer,Integer,Integer>>(){
@@ -133,7 +137,50 @@ public class TweetStreamer implements java.io.Serializable {
 	        }
 	      }, new Duration(60*1000));
 		
-		tweetsComboCounts.foreachRDD(writeComboCounts(AppProperties.getSaveDir() + AppProperties.getComboSavefile()));
+		if(AppProperties.isWriteComboSavefile()) {
+			tweetsComboCounts.foreachRDD(writeComboCounts(AppProperties.getSaveDir() + AppProperties.getComboSavefile()));
+		}
+		
+		if(AppProperties.isUsePredictions()) {
+			JavaPairDStream<TimeComboPrediction, Tuple5<Integer, Integer, Integer, Integer, Integer>> comboPredictionMatches = 
+					tweetsComboCounts.mapToPair(new PairFunction<Tuple2<Combo, Tuple5<Integer, Integer, Integer, Integer, Integer>>, TimeComboPrediction,Tuple5<Integer, Integer, Integer, Integer, Integer>>(){
+
+						@Override
+						public Tuple2<TimeComboPrediction, Tuple5<Integer, Integer, Integer, Integer, Integer>> call(
+								Tuple2<Combo, Tuple5<Integer, Integer, Integer, Integer, Integer>> tuple)
+								throws Exception {
+							
+							Combo combo = tuple._1;
+
+							
+					        Calendar cal = Calendar.getInstance(); 
+//					        cal.add(Calendar.MINUTE, 1);
+					        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+							
+							String now = sdf.format(cal.getTime());
+							String hashKey = now + combo.toString();
+							
+							TimeComboPrediction tcp = predictions.getTimeComboPredictionHashMap().get(hashKey);
+							// TODO Auto-generated method stub
+							return new Tuple2<>(tcp, tuple._2);
+						}
+						
+					});
+			
+			if(AppProperties.isEvalPredictions()) {
+				comboPredictionMatches.foreachRDD(new VoidFunction<JavaPairRDD<TimeComboPrediction, Tuple5<Integer,Integer,Integer,Integer,Integer>>>(){
+					@Override
+					public void call(
+							JavaPairRDD<TimeComboPrediction, Tuple5<Integer, Integer, Integer, Integer, Integer>> t)
+							throws Exception {
+						// TODO Auto-generated method stub
+						
+					}
+					
+				});
+			}
+		}
+		
 
 		jssc.start();
 		try {
