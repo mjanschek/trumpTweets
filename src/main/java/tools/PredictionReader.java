@@ -18,7 +18,7 @@ public class PredictionReader implements java.io.Serializable{
 
 	private List<TimeComboPrediction> timeComboPredictionList;
 	
-	private HashMap<String, TimeComboPrediction> timeComboPredictionHashMap;
+	private HashMap<Integer, TimeComboPrediction> timeComboPredictionHashMap;
 	
 	private String timeComboPredictionFilepath;
 	
@@ -52,9 +52,9 @@ public class PredictionReader implements java.io.Serializable{
 	 * build the HashMap, use combination of flag-combo and time string as key
 	 */
 	public void buildHashMap() {
-		timeComboPredictionHashMap = new HashMap<String, TimeComboPrediction>();
+		timeComboPredictionHashMap = new HashMap<Integer, TimeComboPrediction>();
 		for (TimeComboPrediction tcp : timeComboPredictionList) {
-			timeComboPredictionHashMap.put(tcp.getTime().toString() + tcp.getCombo().toString(), tcp);
+			timeComboPredictionHashMap.put((tcp.getTime().toString() + tcp.getCombo().toFastString()).hashCode(), tcp);
 		}
 	}
 
@@ -69,11 +69,11 @@ public class PredictionReader implements java.io.Serializable{
 		this.timeComboPredictionList = timeComboPredictionList;
 	}
 
-	public HashMap<String, TimeComboPrediction> getTimeComboPredictionHashMap() {
+	public HashMap<Integer, TimeComboPrediction> getTimeComboPredictionHashMap() {
 		return timeComboPredictionHashMap;
 	}
 
-	public void setTimeComboPredictionHashMap(HashMap<String, TimeComboPrediction> timeComboPredictionHashMap) {
+	public void setTimeComboPredictionHashMap(HashMap<Integer, TimeComboPrediction> timeComboPredictionHashMap) {
 		this.timeComboPredictionHashMap = timeComboPredictionHashMap;
 	}
 

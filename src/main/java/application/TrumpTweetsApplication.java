@@ -2,6 +2,10 @@ package application;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
 import repositories.AppProperties;
 import streaming.TweetStreamer;
 import tools.PredictionReader;
@@ -16,6 +20,15 @@ import twitter4j.TwitterException;
 public class TrumpTweetsApplication {
 
 	public static void main(String[] args) throws FileNotFoundException, IOException{
+		
+		
+		/*
+		 * Set logging level if log4j not configured (override by adding log4j.properties to classpath)
+		 */
+		if (!Logger.getRootLogger().getAllAppenders().hasMoreElements()) {
+			Logger.getRootLogger().setLevel(Level.ERROR);
+		}
+		
 		/*
 		 * Read properties file and save as static object
 		 */

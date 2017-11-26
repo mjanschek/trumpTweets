@@ -10,9 +10,13 @@ import com.opencsv.bean.CsvBindByName;
  * 
  * The TimeComboPrediction object is a complete prediction for a hashtag combination (Combo object) and a time
  */
-@SuppressWarnings("serial")
 public class TimeComboPrediction implements java.io.Serializable {
 	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
 	private Combo combo;
 	
 	@CsvBindByName

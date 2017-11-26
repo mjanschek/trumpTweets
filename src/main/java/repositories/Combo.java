@@ -6,10 +6,15 @@ package repositories;
  * 
  * essentially, this is a boolean[5] array with some functionality
  */
-@SuppressWarnings("serial")
+
 public class Combo implements java.io.Serializable {
 	
-    private boolean isTrumpTweet;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	private boolean isTrumpTweet;
     
     private boolean isNewsTweet;
     
@@ -18,7 +23,7 @@ public class Combo implements java.io.Serializable {
     private boolean isDemocratsTweet;
     
     private boolean isPoliticsTweet;
-
+    
 	public Combo() {
 		super();
 		// TODO Auto-generated constructor stub
@@ -39,7 +44,7 @@ public class Combo implements java.io.Serializable {
 	 */
     @Override
     public int hashCode() {
-       return 371 * toString().hashCode();
+       return 371 * toFastString().hashCode();
     }
 
     @Override 
@@ -48,7 +53,7 @@ public class Combo implements java.io.Serializable {
        if (other == null || this.getClass() != other.getClass()) return false;
 
        Combo combo = (Combo) other;
-       return this.toString().equals(combo.toString());
+       return this.toFastString().equals(combo.toFastString());
     }
 
 	@Override
@@ -56,6 +61,16 @@ public class Combo implements java.io.Serializable {
 		return "Combo [isTrumpTweet=" + isTrumpTweet + ", isNewsTweet=" + isNewsTweet + ", isFakeNewsTweet="
 				+ isFakeNewsTweet + ", isDemocratsTweet=" + isDemocratsTweet + ", isPoliticsTweet="
 				+ isPoliticsTweet + "]";
+	}
+
+	public String toFastString() {
+		return ""
+				+ isTrumpTweet
+				+ isNewsTweet
+				+ isFakeNewsTweet
+				+ isDemocratsTweet
+				+ isPoliticsTweet 
+				+ "";
 	}
 	
 	/*
@@ -105,4 +120,5 @@ public class Combo implements java.io.Serializable {
 		this.isPoliticsTweet = isPoliticsTweet;
 	}
     
+	
 }
