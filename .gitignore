@@ -10,3 +10,7 @@ build/
 bin/
 
 work/
+
+\.idea/
+
+\.ipynb_checkpoints/
