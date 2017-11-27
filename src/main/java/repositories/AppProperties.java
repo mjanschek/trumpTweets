@@ -25,7 +25,7 @@ public class AppProperties {
     
     private static String filters[];
     
-    private static String saveDir;
+    private static String workDir;
     
     private static String predictionsFilename;
     
@@ -73,7 +73,8 @@ public class AppProperties {
 		setHashTagListNormalized(hashTagListNormalized);
 		
 		setFilters(properties.getProperty("filters").split(","));
-		setSaveDir(properties.getProperty("saveDir"));
+		String workDir = properties.getProperty("workDir");
+		setWorkDir(workDir);
 		
 		setWriteTweetsSavefile(Boolean.parseBoolean(properties.getProperty("writeTweetsSavefile")));
 		setTweetsSavefile(properties.getProperty("tweetsSavefile"));
@@ -147,12 +148,12 @@ public class AppProperties {
 		AppProperties.filters = filters;
 	}
 
-	public static String getSaveDir() {
-		return saveDir;
+	public static String getWorkDir() {
+		return workDir;
 	}
 
-	public static void setSaveDir(String saveDir) {
-		AppProperties.saveDir = saveDir;
+	public static void setWorkDir(String workDir) {
+		AppProperties.workDir = workDir;
 	}
 
 	public static String getPredictionsFilename() {

@@ -16,12 +16,14 @@ jar {
     
 	file('src/main/resources/*.properties')
 	
-    destinationDir = file("/home/garg/tweets/")
+    destinationDir = file("target")
 }
 
 copy {
 	from 'src/main/python'
-	into '/home/garg/tweets'
+	from 'data'
+	from 'src/main/bash'
+	into 'target'
 }
 
 repositories {

@@ -26,7 +26,7 @@ public class PredictionReader implements java.io.Serializable{
 	 * read csv file on creation, use filepath given by properties
 	 */
 	public PredictionReader() {
-		setTimeComboPredictionFilepath(AppProperties.getSaveDir() + AppProperties.getPredictionsFilename());
+		setTimeComboPredictionFilepath(AppProperties.getWorkDir() + AppProperties.getPredictionsFilename());
 		try {
 			updateTimeComboPredictionList();
 		} catch (IllegalStateException | FileNotFoundException e) {

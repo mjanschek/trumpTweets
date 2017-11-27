@@ -88,7 +88,7 @@ public class TweetStreamer implements java.io.Serializable {
 
 		// if activated, write all filtered tweets to a file
 		if(AppProperties.isWriteTweetsSavefile()) {
-			tweetsComboMatch.foreachRDD(writeTweets(AppProperties.getSaveDir() + AppProperties.getTweetsSavefile()));
+			tweetsComboMatch.foreachRDD(writeTweets(AppProperties.getWorkDir() + AppProperties.getTweetsSavefile()));
 		}
 		
 		// calculate metrics and reduce on Combo for a 60 seconds timewindow
@@ -98,7 +98,7 @@ public class TweetStreamer implements java.io.Serializable {
 		
 		// if activated, write metric summaries to a file
 		if(AppProperties.isWriteComboSavefile()) {
-			tweetsComboCounts.foreachRDD(writeComboCounts(AppProperties.getSaveDir() + AppProperties.getComboSavefile()));
+			tweetsComboCounts.foreachRDD(writeComboCounts(AppProperties.getWorkDir() + AppProperties.getComboSavefile()));
 		}
 		
 		// if activated, access predictions
@@ -108,7 +108,7 @@ public class TweetStreamer implements java.io.Serializable {
 			
 			// if activated, evaluate predictions and write to file
 			if(AppProperties.isEvalPredictions()) {
-				comboPredictionMatches.foreachRDD(writePredictionEval(AppProperties.getSaveDir() + AppProperties.getPredictionsEvalFilename()));
+				comboPredictionMatches.foreachRDD(writePredictionEval(AppProperties.getWorkDir() + AppProperties.getPredictionsEvalFilename()));
 			}
 		}
 		
