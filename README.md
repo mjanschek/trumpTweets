@@ -8,7 +8,6 @@ Contents:
 
 ## Project description
 The project descrition is available as notebook at [target/tweetAnalysis.ipynb][0].
-This notebook is also available compiled as html at [target/tweetAnalysis.html][1].
 
 ## Requirements
 Following programs and libraries should be installed and functioning for running this project and its specified application part.
@@ -71,4 +70,3 @@ Requirements as python script plus:
 - Run the notebook step-by-step
 
 [0]: https://github.com/gargi/trumpTweets/blob/master/src/main/python/tweetAnalysis.ipynb "Tweet Analysis Notebook"
-[1]: https://github.com/gargi/trumpTweets/blob/master/src/main/python/tweetAnalysis.html "Tweet Analysis Notebook as html"
