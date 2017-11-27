@@ -54,8 +54,7 @@ public class PredictionReader implements java.io.Serializable{
 	public void buildHashMap() {
 		timeComboPredictionHashMap = new HashMap<Integer, TimeComboPrediction>();
 		for (TimeComboPrediction tcp : timeComboPredictionList) {
-			tcp.buildCombo();
-			timeComboPredictionHashMap.put((tcp.getTime().toString() + tcp.getCombo().toFastString()).hashCode(), tcp);
+			timeComboPredictionHashMap.put(tcp.toFastString().hashCode(), tcp);
 		}
 	}
 

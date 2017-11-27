@@ -5,6 +5,8 @@ import java.sql.Time;
 
 import com.opencsv.bean.CsvBindByName;
 
+import scala.Tuple5;
+
 /*
  * This repository enables comfortable csv parsing via annotations
  * 
@@ -16,8 +18,6 @@ public class TimeComboPrediction implements java.io.Serializable {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-
-	private Combo combo;
 	
 	@CsvBindByName
 	private Time time;
@@ -44,25 +44,23 @@ public class TimeComboPrediction implements java.io.Serializable {
     private double meanTextLength;
     
     @CsvBindByName
-    private double totalHashtagCount;
+    private double meanHashtagCount;
     
     @CsvBindByName
-    private double totalTrumpCount;
+    private double meanTrumpCount;
     
     @CsvBindByName
-    private double totalSensitiveCount;
+    private double meanSensitiveCount;
 
 	public TimeComboPrediction() {
 		super();
-		// TODO Auto-generated constructor stub+
-		combo = new Combo();
+		// TODO Auto-generated constructor stub
 	}
 
-	public TimeComboPrediction(Combo combo, Time time, boolean isTrumpTweet, boolean isNewsTweet,
-			boolean isFakeNewsTweet, boolean isDemocratsTweet, boolean isPoliticsTweet, double count,
-			double meanTextLength, double totalHashtagCount, double totalTrumpCount, double totalSensitiveCount) {
+	public TimeComboPrediction(Time time, boolean isTrumpTweet, boolean isNewsTweet, boolean isFakeNewsTweet,
+			boolean isDemocratsTweet, boolean isPoliticsTweet, double count, double meanTextLength,
+			double meanHashtagCount, double meanTrumpCount, double meanSensitiveCount) {
 		super();
-		this.combo = combo;
 		this.time = time;
 		this.isTrumpTweet = isTrumpTweet;
 		this.isNewsTweet = isNewsTweet;
@@ -71,18 +69,35 @@ public class TimeComboPrediction implements java.io.Serializable {
 		this.isPoliticsTweet = isPoliticsTweet;
 		this.count = count;
 		this.meanTextLength = meanTextLength;
-		this.totalHashtagCount = totalHashtagCount;
-		this.totalTrumpCount = totalTrumpCount;
-		this.totalSensitiveCount = totalSensitiveCount;
+		this.meanHashtagCount = meanHashtagCount;
+		this.meanTrumpCount = meanTrumpCount;
+		this.meanSensitiveCount = meanSensitiveCount;
+	}
+	
+	@Override
+	public String toString() {
+		return "TimeComboPrediction [time=" + time + ", isTrumpTweet=" + isTrumpTweet + ", isNewsTweet=" + isNewsTweet
+				+ ", isFakeNewsTweet=" + isFakeNewsTweet + ", isDemocratsTweet=" + isDemocratsTweet
+				+ ", isPoliticsTweet=" + isPoliticsTweet + ", count=" + count + ", meanTextLength=" + meanTextLength
+				+ ", meanHashtagCount=" + meanHashtagCount + ", meanTrumpCount=" + meanTrumpCount
+				+ ", meanSensitiveCount=" + meanSensitiveCount + "]";
 	}
 
 	@Override
-	public String toString() {
-		return "TimeComboPrediction [combo=" + combo + ", time=" + time + ", isTrumpTweet=" + isTrumpTweet
-				+ ", isNewsTweet=" + isNewsTweet + ", isFakeNewsTweet=" + isFakeNewsTweet + ", isDemocratsTweet="
-				+ isDemocratsTweet + ", isPoliticsTweet=" + isPoliticsTweet + ", count=" + count
-				+ ", meanTextLength=" + meanTextLength + ", totalHashtagCount=" + totalHashtagCount
-				+ ", totalTrumpCount=" + totalTrumpCount + ", totalSensitiveCount=" + totalSensitiveCount + "]";
+    public int hashCode() {
+       return 371 * toFastString().hashCode();
+    }
+    
+	public String toFastString() {
+		return time.toString() + isTrumpTweet + isNewsTweet + isFakeNewsTweet + isDemocratsTweet + isPoliticsTweet;
+	}
+	
+	public Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean> getTuple5() {
+		return new Tuple5<>(isTrumpTweet,
+							isNewsTweet,
+							isFakeNewsTweet,
+							isDemocratsTweet,
+							isPoliticsTweet);
 	}
 	
 	/*
@@ -90,17 +105,6 @@ public class TimeComboPrediction implements java.io.Serializable {
 	 * 
 	 * the boolean set functions also directly manipulate the Combo() object of this class 
 	 */
-	public Combo getCombo() {
-		return combo;
-	}
-	
-	public void buildCombo() {
-		this.combo = new Combo(isTrumpTweet,
-							   isNewsTweet,
-							   isFakeNewsTweet,
-							   isDemocratsTweet,
-							   isPoliticsTweet);
-	}
 	
 	public Time getTime() {
 		return time;
@@ -166,28 +170,28 @@ public class TimeComboPrediction implements java.io.Serializable {
 		this.meanTextLength = meanTextLength;
 	}
 
-	public double getTotalHashtagCount() {
-		return totalHashtagCount;
+	public double getMeanHashtagCount() {
+		return meanHashtagCount;
 	}
 
-	public void setTotalHashtagCount(double totalHashtagCount) {
-		this.totalHashtagCount = totalHashtagCount;
+	public void setMeanHashtagCount(double meanHashtagCount) {
+		this.meanHashtagCount = meanHashtagCount;
 	}
 
-	public double getTotalTrumpCount() {
-		return totalTrumpCount;
+	public double getMeanTrumpCount() {
+		return meanTrumpCount;
 	}
 
-	public void setTotalTrumpCount(double totalTrumpCount) {
-		this.totalTrumpCount = totalTrumpCount;
+	public void setMeanTrumpCount(double meanTrumpCount) {
+		this.meanTrumpCount = meanTrumpCount;
 	}
 
-	public double getTotalSensitiveCount() {
-		return totalSensitiveCount;
+	public double getMeanSensitiveCount() {
+		return meanSensitiveCount;
 	}
 
-	public void setTotalSensitiveCount(double totalSensitiveCount) {
-		this.totalSensitiveCount = totalSensitiveCount;
+	public void setMeanSensitiveCount(double meanSensitiveCount) {
+		this.meanSensitiveCount = meanSensitiveCount;
 	}
-
+	
 }

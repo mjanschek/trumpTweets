@@ -1,16 +1,15 @@
 package streaming;
 
 import repositories.AppProperties;
-import repositories.Combo;
 import repositories.TimeComboPrediction;
 import scala.Tuple2;
-import scala.Tuple3;
 import scala.Tuple5;
 import tools.CSVUtils;
 import tools.PredictionReader;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,7 +19,6 @@ import java.util.List;
 
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
@@ -83,7 +81,7 @@ public class TweetStreamer implements java.io.Serializable {
 		JavaReceiverInputDStream<Status> stream = TwitterUtils.createStream(jssc, AppProperties.getFilters());
 		
 		// filter tweets (details in filterTweets()) and build <Status,Combo> pair
-		JavaPairDStream<Status,Combo> tweetsComboMatch = filterTweets(stream)
+		JavaPairDStream<Status,Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>> tweetsComboMatch = filterTweets(stream)
 														 .mapToPair(statusAndCombo());
 
 		// if activated, write all filtered tweets to a file
@@ -92,19 +90,20 @@ public class TweetStreamer implements java.io.Serializable {
 		}
 		
 		// calculate metrics and reduce on Combo for a 60 seconds timewindow
-		JavaPairDStream<Combo, Tuple5<Integer, Integer, Integer, Integer, Integer>> tweetsComboCounts = 
+		JavaPairDStream<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double, Double, Double, Double, Double>> comboMeanCounts = 
 				tweetsComboMatch.mapToPair(comboAndMetrics())
-								.reduceByKeyAndWindow(sumMetrics(), new Duration(60*1000));
+								.reduceByKeyAndWindow(sumMetrics(), new Duration(60*1000))
+								.mapToPair(meanValues());
 		
 		// if activated, write metric summaries to a file
 		if(AppProperties.isWriteComboSavefile()) {
-			tweetsComboCounts.foreachRDD(writeComboCounts(AppProperties.getWorkDir() + AppProperties.getComboSavefile()));
+			comboMeanCounts.foreachRDD(writeComboCounts(AppProperties.getWorkDir() + AppProperties.getComboSavefile()));
 		}
 		
 		// if activated, access predictions
 		if(AppProperties.isUsePredictions()) {
-			JavaDStream<Tuple3<Combo, TimeComboPrediction, Tuple5<Integer, Integer, Integer, Integer, Integer>>> comboPredictionMatches = 
-					tweetsComboCounts.map(mapComboToPrediction());
+			JavaPairDStream<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>> comboPredictionMatches = 
+					comboMeanCounts.mapToPair(mapComboToPrediction());
 			
 			// evaluate predictions and write to file
 			comboPredictionMatches.foreachRDD(writePredictionEval(AppProperties.getWorkDir() + AppProperties.getPredictionsEvalFilename()));
@@ -151,11 +150,11 @@ public class TweetStreamer implements java.io.Serializable {
 	/*
 	 * take a tweet and build a Combo object for it, map it to this tweet
 	 */
-	public PairFunction<Status,Status,Combo> statusAndCombo(){
-		return new PairFunction<Status,Status,Combo>(){
+	public PairFunction<Status,Status,Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>> statusAndCombo(){
+		return new PairFunction<Status,Status,Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>>(){
 			
 		@Override
-		public Tuple2<Status,Combo> call(Status status) throws Exception {
+		public Tuple2<Status,Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>> call(Status status) throws Exception {
 	
 			// build a List of hashtags
 			List <String> hashTagList = new ArrayList<String>();
@@ -171,11 +170,11 @@ public class TweetStreamer implements java.io.Serializable {
 			boolean hasDemocratsHashtag = hashTagList.contains("democrats");
 			boolean hasPoliticsHashtag 	= hashTagList.contains("politics");
 			
-			return new Tuple2<>(status, new Combo(hasTrumpHashtag,
-												  hasNewsHashtag,
-												  hasFakeNewsHashtag,
-												  hasDemocratsHashtag,
-												  hasPoliticsHashtag));
+			return new Tuple2<>(status, new Tuple5<>(hasTrumpHashtag,
+													 hasNewsHashtag,
+													 hasFakeNewsHashtag,
+													 hasDemocratsHashtag,
+													 hasPoliticsHashtag));
 			}
 		};
 	}
@@ -183,11 +182,15 @@ public class TweetStreamer implements java.io.Serializable {
 	/*
 	 * calculate the metrics for a single tweet 
 	 */
-	public PairFunction<Tuple2<Status,Combo>,Combo,Tuple5<Integer,Integer,Integer,Integer,Integer>> comboAndMetrics(){
-		return new PairFunction<Tuple2<Status,Combo>,Combo,Tuple5<Integer,Integer,Integer,Integer,Integer>>(){
+	public PairFunction<Tuple2<Status,Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>>,
+						Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>,
+						Tuple5<Integer,Integer,Integer,Integer,Integer>> comboAndMetrics(){
+		return new PairFunction<Tuple2<Status,Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>>,
+								Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>,
+								Tuple5<Integer,Integer,Integer,Integer,Integer>>(){
 			
 			@Override
-			public Tuple2<Combo, Tuple5<Integer,Integer,Integer,Integer,Integer>> call(Tuple2<Status, Combo> input) throws Exception {
+			public Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Integer,Integer,Integer,Integer,Integer>> call(Tuple2<Status, Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>> input) throws Exception {
 				
 //				Status status 				= input._1;
 //				String text 				= input._1.getText();
@@ -246,39 +249,74 @@ public class TweetStreamer implements java.io.Serializable {
 		};
 	}
 
+	public PairFunction<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>,Tuple5<Integer,Integer,Integer,Integer,Integer>>,
+						Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>,
+						Tuple5<Double,Double,Double,Double,Double>>meanValues(){
+		return new PairFunction<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>,Tuple5<Integer,Integer,Integer,Integer,Integer>>,
+							    Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>,
+							    Tuple5<Double,Double,Double,Double,Double>>(){
+
+									@Override
+									public Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double, Double, Double, Double, Double>> call(
+										   Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Integer, Integer, Integer, Integer, Integer>> t)
+											throws Exception {
+										// TODO Auto-generated method stub
+										
+										Double count 				= (double) t._2()._1();
+							        	Double meanTextLength 		= (double) t._2()._2()/count;
+							        	Double meanHashtagCount 	= (double) t._2()._3()/count;;
+							        	Double meanTrumpCount 		= (double) t._2()._4()/count;;
+							        	Double meanSensitiveCount 	= (double) t._2()._5()/count;
+										
+										
+										return new Tuple2<>(t._1,new Tuple5<>(count,
+																			  meanTextLength,
+																			  meanHashtagCount,
+																			  meanTrumpCount,
+																			  meanSensitiveCount));
+									}
+			
+		};
+		
+	}
+	
 	/*
 	 * generate a valid hashkey, get the corresponding prediction and map it to the right combo and it's metrics
 	 */
-	public Function<Tuple2<Combo, Tuple5<Integer, Integer, Integer, Integer, Integer>>, 
-					Tuple3<Combo, TimeComboPrediction, Tuple5<Integer, Integer, Integer, Integer, Integer>>> mapComboToPrediction() {
-		return new Function<Tuple2<Combo, Tuple5<Integer, Integer, Integer, Integer, Integer>>,
-							Tuple3<Combo, TimeComboPrediction, Tuple5<Integer, Integer, Integer, Integer, Integer>>>(){
-
+	public PairFunction<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double, Double, Double, Double, Double>>,
+						TimeComboPrediction,
+						Tuple5<Double, Double, Double, Double, Double>> mapComboToPrediction() {
+		return new PairFunction<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double, Double, Double, Double, Double>>,
+									   TimeComboPrediction,
+									   Tuple5<Double, Double, Double, Double, Double>>(){
 			@Override
-			public Tuple3<Combo, TimeComboPrediction, Tuple5<Integer, Integer, Integer, Integer, Integer>> call(
-					Tuple2<Combo, Tuple5<Integer, Integer, Integer, Integer, Integer>> tuple)
-					throws Exception {
-				
+			public Tuple2<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>> call(
+				   Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double, Double, Double, Double, Double>> tuple)
+						   throws Exception {
 				// get current time to build hashkey for prediction HashMap
-		        Calendar cal 			= Calendar.getInstance(); 
-		        SimpleDateFormat sdf 	= new SimpleDateFormat("HH:mm:ss");
+				Calendar cal 			= Calendar.getInstance();
+				SimpleDateFormat sdf 	= new SimpleDateFormat("HH:mm:ss");
 				String now 				= sdf.format(cal.getTime());
-				Integer hashKey 		= (now + tuple._1.toFastString()).hashCode();
-				
+				Integer hashKey 		= (now
+										+ tuple._1._1().toString() 
+										+ tuple._1._2().toString()
+										+ tuple._1._3().toString() 
+										+ tuple._1._4().toString()
+										+ tuple._1._5().toString()).hashCode();
+
 				TimeComboPrediction tcp = predictions.getTimeComboPredictionHashMap().get(hashKey);
 				
-				return new Tuple3<>(tuple._1,
-									tcp,
+				return new Tuple2<>(tcp,
 									tuple._2);
 			}
 		};
 	}
 	
-	public VoidFunction<JavaPairRDD<Status, Combo>> writeTweets(String filePath){
-		return new VoidFunction<JavaPairRDD<Status, Combo>>() {
+	public VoidFunction<JavaPairRDD<Status, Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>>> writeTweets(String filePath){
+		return new VoidFunction<JavaPairRDD<Status, Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>>>() {
 		@Override
-		public void call(JavaPairRDD<Status, Combo> allTweetsCombos) throws Exception {
-			List<Tuple2<Status, Combo>> tweetCombos = allTweetsCombos.collect();
+		public void call(JavaPairRDD<Status, Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>> allTweetsCombos) throws Exception {
+			List<Tuple2<Status, Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>>> tweetCombos = allTweetsCombos.collect();
 	
 			boolean firstLine = false;
 			File f = new File(filePath);
@@ -301,15 +339,14 @@ public class TweetStreamer implements java.io.Serializable {
 						+ "\"place\";"
 						+ "\"text\";"
 						+ "\"textLength\";"
-						+ new Combo().getCsvHeader()
+						+ getComboCsvHeader()
 						+ "\n";
 				writer.write(header);
 			}
 	
-			for(Tuple2<Status, Combo> tweetCombo:tweetCombos) {
+			for(Tuple2<Status, Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>> tweetCombo:tweetCombos) {
 				try {
 					Status status = tweetCombo._1;
-					Combo combo = tweetCombo._2;
 					
 					List <String> hashTagList = new ArrayList<String>();
 					for(HashtagEntity hashTag:status.getHashtagEntities()) {
@@ -321,7 +358,6 @@ public class TweetStreamer implements java.io.Serializable {
 					for(UserMentionEntity userMention:status.getUserMentionEntities()) {
 						userMentionsList.add(Long.toString(userMention.getId()));
 					}
-	
 	
 					String timestamp 		= status.getCreatedAt().toString();
 					String userId 			= Long.toString(status.getUser().getId());
@@ -339,11 +375,11 @@ public class TweetStreamer implements java.io.Serializable {
 					String text 			= status.getText().toString();
 					String textLength 		= Integer.toString(text.length());
 	
-					String isTrumpTweet 		= Boolean.toString(combo.isTrumpTweet());
-					String isNewsTweet 			= Boolean.toString(combo.isNewsTweet());
-					String isFakeNewsTweet 		= Boolean.toString(combo.isFakeNewsTweet());
-					String isDemocratsTweet 	= Boolean.toString(combo.isDemocratsTweet());
-					String isPoliticsTweet 		= Boolean.toString(combo.isPoliticsTweet());
+					String isTrumpTweet 		= Boolean.toString(tweetCombo._2._1());
+					String isNewsTweet 			= Boolean.toString(tweetCombo._2._2());
+					String isFakeNewsTweet 		= Boolean.toString(tweetCombo._2._3());
+					String isDemocratsTweet 	= Boolean.toString(tweetCombo._2._4());
+					String isPoliticsTweet 		= Boolean.toString(tweetCombo._2._5());
 	
 					CSVUtils.writeLine(writer,
 							Arrays.asList(timestamp,
@@ -376,14 +412,14 @@ public class TweetStreamer implements java.io.Serializable {
 	};
 	}
 
-	public VoidFunction<JavaPairRDD<Combo, Tuple5<Integer,Integer,Integer,Integer,Integer>>> writeComboCounts(String filePath){
-		return new VoidFunction<JavaPairRDD<Combo, Tuple5<Integer,Integer,Integer,Integer,Integer>>>(){
+	public VoidFunction<JavaPairRDD<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double,Double,Double,Double,Double>>> writeComboCounts(String filePath){
+		return new VoidFunction<JavaPairRDD<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double,Double,Double,Double,Double>>>(){
 
 			@Override
-			public void call(JavaPairRDD<Combo, Tuple5<Integer, Integer, Integer, Integer, Integer>> allComboCounts)
+			public void call(JavaPairRDD<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double,Double,Double,Double,Double>> allComboCounts)
 					throws Exception {
 				// TODO Auto-generated method stub
-				List<Tuple2<Combo, Tuple5<Integer, Integer, Integer, Integer, Integer>>> comboCounts = allComboCounts.collect();
+				List<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double,Double,Double,Double,Double>>> comboCounts = allComboCounts.collect();
 				
 				boolean firstLine = false;
 				File f = new File(filePath);
@@ -395,41 +431,49 @@ public class TweetStreamer implements java.io.Serializable {
 				FileWriter writer = new FileWriter(f,true);
 				if(firstLine) {
 					String header = "\"timestamp\";"
-									+ new Combo().getCsvHeader() + ";"
+									+ "\"time\";"
+									+ getComboCsvHeader() + ";"
 									+ "\"count\";"
 									+ "\"meanTextLength\";"
-									+ "\"totalHashtagCount\";"
-									+ "\"totalTrumpCount\";"
-									+ "\"totalSensitiveCount\""
+									+ "\"meanHashtagCount\";"
+									+ "\"meanTrumpCount\";"
+									+ "\"meanSensitiveCount\""
 									+ "\n";
 					writer.write(header);
 				}
 				
-				for(Tuple2<Combo, Tuple5<Integer, Integer, Integer, Integer, Integer>> comboCount:comboCounts) {
+				for(Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double,Double,Double,Double,Double>> comboCount:comboCounts) {
 					try {
 						Date timestamp = new java.util.Date();
-			        	
-						Combo combo = comboCount._1;
+						DateFormat df = new SimpleDateFormat("HH:mm:ss");
+						String time = df.format(timestamp);
 						
-						Double count = (double) comboCount._2._1();
-			        	Double meanTextLength = (double) comboCount._2._2()/count;
-			        	Integer totalHashtagCount = comboCount._2._3();;
-			        	Integer totalTrumpCount = comboCount._2._4();;
-			        	Integer totalSensitiveCount = comboCount._2._5();;
+						String isTrumpTweet 		= Boolean.toString(comboCount._1._1());
+						String isNewsTweet 			= Boolean.toString(comboCount._1._2());
+						String isFakeNewsTweet 		= Boolean.toString(comboCount._1._3());
+						String isDemocratsTweet 	= Boolean.toString(comboCount._1._4());
+						String isPoliticsTweet 		= Boolean.toString(comboCount._1._5());
+						
+						// get mean metrics in this minute
+						Double count 				= (double) comboCount._2._1();
+			        	Double meanTextLength 		= (double) comboCount._2._2();
+			        	Double meanHashtagCount 	= (double) comboCount._2._3();
+			        	Double meanTrumpCount 		= (double) comboCount._2._4();
+			        	Double meanSensitiveCount 	= (double) comboCount._2._5();
 			        	
 			        	CSVUtils.writeLine(writer,
 								Arrays.asList(timestamp.toString(),
-										Boolean.toString(combo.isTrumpTweet()),
-										Boolean.toString(combo.isNewsTweet()),
-										Boolean.toString(combo.isFakeNewsTweet()),
-										Boolean.toString(combo.isDemocratsTweet()),
-										Boolean.toString(combo.isPoliticsTweet()),
-										Double.toString(count),
-										Double.toString(meanTextLength),
-										Integer.toString(totalHashtagCount),
-										Integer.toString(totalTrumpCount),
-										Integer.toString(totalSensitiveCount)
-										),
+											  time,
+											  isTrumpTweet,
+											  isNewsTweet,
+											  isFakeNewsTweet,
+											  isDemocratsTweet,
+											  isPoliticsTweet,
+											  Double.toString(count),
+											  Double.toString(meanTextLength),
+											  Double.toString(meanHashtagCount),
+											  Double.toString(meanTrumpCount),
+											  Double.toString(meanSensitiveCount)),
 								';', '"');
 					} catch (Exception e){
 						continue;
@@ -442,14 +486,14 @@ public class TweetStreamer implements java.io.Serializable {
 		};
     }
  	 	
-	public VoidFunction<JavaRDD<Tuple3<Combo, TimeComboPrediction, Tuple5<Integer, Integer, Integer, Integer, Integer>>>> writePredictionEval(String filePath){
-		return new VoidFunction<JavaRDD<Tuple3<Combo, TimeComboPrediction, Tuple5<Integer, Integer, Integer, Integer, Integer>>>>(){
+	public VoidFunction<JavaPairRDD<TimeComboPrediction, Tuple5<Double,Double,Double,Double,Double>>> writePredictionEval(String filePath){
+		return new VoidFunction<JavaPairRDD<TimeComboPrediction, Tuple5<Double,Double,Double,Double,Double>>>(){
 	
 			@Override
-			public void call(JavaRDD<Tuple3<Combo, TimeComboPrediction, Tuple5<Integer, Integer, Integer, Integer, Integer>>> allComboPredictions)
+			public void call(JavaPairRDD<TimeComboPrediction, Tuple5<Double,Double,Double,Double,Double>> allComboPredictions)
 					throws Exception {
 				// TODO Auto-generated method stub
-				List<Tuple3<Combo, TimeComboPrediction, Tuple5<Integer, Integer, Integer, Integer, Integer>>> comboPredictions = allComboPredictions.collect();
+				List<Tuple2<TimeComboPrediction, Tuple5<Double,Double,Double,Double,Double>>> comboPredictions = allComboPredictions.collect();
 				
 				boolean firstLine = false;
 				File f = new File(filePath);
@@ -461,131 +505,63 @@ public class TweetStreamer implements java.io.Serializable {
 				FileWriter writer = new FileWriter(f,true);
 				if(firstLine) {
 					String header = "\"timestamp\";"
-									+ new Combo().getCsvHeader() + ";"
 									+ "\"time\";"
+									+ getComboCsvHeader() + ";"
 									+ "\"errorCount\";"
-									+ "\"errorCountRel\";"
 									+ "\"errorMeanTextLength\";"
-									+ "\"errorMeanTextLengthRel\";"
-									+ "\"errorTotalHashtagCount\";"
-									+ "\"errorTotalHashtagCountRel\";"
-									+ "\"errorTotalTrumpCount\";"
-									+ "\"errorTotalTrumpCountRel\";"
-									+ "\"errorTotalSensitiveCount\";"
-									+ "\"errorTotalSensitiveCountRel\";"
-									+ "\"meanErrorRel\""
+									+ "\"errorMeanHashtagCount\";"
+									+ "\"errorMeanTrumpCount\";"
+									+ "\"errorMeanSensitiveCount\""
 									+ "\n";
 					writer.write(header);
 				}
 				
-		        Calendar cal = Calendar.getInstance(); 
-		        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-				
-				for(Tuple3<Combo, TimeComboPrediction, Tuple5<Integer, Integer, Integer, Integer, Integer>> comboPrediction:comboPredictions) {
+				for(Tuple2<TimeComboPrediction, Tuple5<Double,Double,Double,Double,Double>> comboPrediction:comboPredictions) {
 					try {
+						TimeComboPrediction tcp = comboPrediction._1;
+						if(tcp==null) {
+							return;
+						}
 						
 						Double errorCount;
 						Double errorMeanTextLength;
-						Double errorTotalHashtagCount;
-						Double errorTotalTrumpCount;
-						Double errorTotalSensitiveCount;
-						Double errorCountRel;
-						Double errorMeanTextLengthRel;
-						Double errorTotalHashtagCountRel;
-						Double errorTotalTrumpCountRel;
-						Double errorTotalSensitiveCountRel;
-						Double meanErrorRel;
+						Double errorMeanHashtagCount;
+						Double errorMeanTrumpCount;
+						Double errorMeanSensitiveCount;
 						
-						Combo combo = comboPrediction._1();
-						
-						Double count = (double) comboPrediction._3()._1();
-			        	Double  meanTextLength = (double) comboPrediction._3()._2()/count;
-			        	Double totalHashtagCount = (double) comboPrediction._3()._3();;
-			        	Double totalTrumpCount = (double) comboPrediction._3()._4();;
-			        	Double totalSensitiveCount = (double) comboPrediction._3()._5();
+						Double count 				= comboPrediction._2()._1();
+			        	Double meanTextLength 		= comboPrediction._2()._2();
+			        	Double meanHashtagCount 	= comboPrediction._2()._3();;
+			        	Double meanTrumpCount 		= comboPrediction._2()._4();;
+			        	Double meanSensitiveCount 	= comboPrediction._2()._5();
 	
 						Date timestamp = new java.util.Date();
-						String timeStr;
-	
-						TimeComboPrediction tpc = comboPrediction._2();
-						if(tpc==null) {
-							timeStr = sdf.format(cal.getTime());
+						String timeStr = tcp.getTime().toString();
 							
-							combo = comboPrediction._1();
-							
-							errorCount = (double) count;
-							errorMeanTextLength = (double) meanTextLength;
-							errorTotalHashtagCount = (double) totalHashtagCount;
-							errorTotalTrumpCount = (double) totalTrumpCount;
-							errorTotalSensitiveCount = (double) totalSensitiveCount;
-							
-							errorCountRel = 1.0;
-							errorMeanTextLengthRel = 1.0;
-							errorTotalHashtagCountRel = 1.0;
-							errorTotalTrumpCountRel = 1.0;
-							errorTotalSensitiveCountRel = 1.0;
-							
-							meanErrorRel = 1.0;
-						} else {
-							
-							combo = tpc.getCombo();
-							
-							timeStr = tpc.getTime()
-										 .toString();
-							
-							Double predCount = tpc.getCount();
-							Double predMeanTextLength = tpc.getMeanTextLength();
-							Double predTotalHashtagCount = tpc.getTotalHashtagCount();
-							Double predTotalTrumpCount = tpc.getTotalTrumpCount();
-							Double predTotalSensitiveCount = tpc.getTotalSensitiveCount();
-							
-							// "fix" relative error @ truth=0
-							if(meanTextLength == 0) {
-								meanTextLength = 0.01; //less than 1/minute
-							}
-							if(totalHashtagCount == 0) {
-								totalHashtagCount = 0.01; //less than 1/minute
-							}
-							if(totalTrumpCount == 0) {
-								totalTrumpCount = 0.01; //less than 1/minute
-							}
-							if(totalSensitiveCount == 0) {
-								totalSensitiveCount = 0.01; //less than 1/minute
-							}
-
-							errorCount = count - predCount;
-							errorMeanTextLength = predMeanTextLength - meanTextLength;
-							errorTotalHashtagCount = predTotalHashtagCount - totalHashtagCount;
-							errorTotalTrumpCount = predTotalTrumpCount - totalTrumpCount;
-							errorTotalSensitiveCount = predTotalSensitiveCount - totalSensitiveCount;
-							
-							errorCountRel = Math.abs(errorCount/count);
-							errorMeanTextLengthRel = Math.abs(errorMeanTextLength)/meanTextLength;
-							errorTotalHashtagCountRel = Math.abs(errorTotalHashtagCount/totalHashtagCount);
-							errorTotalTrumpCountRel = Math.abs(errorTotalTrumpCount/totalTrumpCount);
-							errorTotalSensitiveCountRel = Math.abs(errorTotalSensitiveCount/totalSensitiveCount);
-							
-							meanErrorRel = (errorCountRel+errorMeanTextLengthRel+errorTotalHashtagCountRel+errorTotalTrumpCountRel+errorTotalSensitiveCountRel)/5;
-						}
+						Double predCount 				= tcp.getCount();
+						Double predMeanTextLength 		= tcp.getMeanTextLength();
+						Double predMeanHashtagCount 	= tcp.getMeanHashtagCount();
+						Double predMeanTrumpCount 		= tcp.getMeanTrumpCount();
+						Double predMeanSensitiveCount 	= tcp.getMeanSensitiveCount();
+						
+						errorCount 					= count - predCount;
+						errorMeanTextLength 		= predMeanTextLength - meanTextLength;
+						errorMeanHashtagCount 		= predMeanHashtagCount - meanHashtagCount;
+						errorMeanTrumpCount 		= predMeanTrumpCount - meanTrumpCount;
+						errorMeanSensitiveCount 	= predMeanSensitiveCount - meanSensitiveCount;
 						
 						List<String> metrics = Arrays.asList(timestamp.toString(),
-															 Boolean.toString(combo.isTrumpTweet()),
-															 Boolean.toString(combo.isNewsTweet()),
-															 Boolean.toString(combo.isFakeNewsTweet()),
-															 Boolean.toString(combo.isDemocratsTweet()),
-															 Boolean.toString(combo.isPoliticsTweet()),
 															 timeStr,
+															 Boolean.toString(tcp.isTrumpTweet()),
+															 Boolean.toString(tcp.isNewsTweet()),
+															 Boolean.toString(tcp.isFakeNewsTweet()),
+															 Boolean.toString(tcp.isDemocratsTweet()),
+															 Boolean.toString(tcp.isPoliticsTweet()),
 															 Double.toString(errorCount),
-															 Double.toString(errorCountRel),
 															 Double.toString(errorMeanTextLength),
-															 Double.toString(errorMeanTextLengthRel),
-															 Double.toString(errorTotalHashtagCount),
-															 Double.toString(errorTotalHashtagCountRel),
-															 Double.toString(errorTotalTrumpCount),
-															 Double.toString(errorTotalTrumpCountRel),
-															 Double.toString(errorTotalSensitiveCount),
-															 Double.toString(errorTotalSensitiveCountRel),
-															 Double.toString(meanErrorRel)
+															 Double.toString(errorMeanHashtagCount),
+															 Double.toString(errorMeanTrumpCount),
+															 Double.toString(errorMeanSensitiveCount)
 															 );
 						
 			        	CSVUtils.writeLine(writer, metrics, ';', '"');
@@ -606,6 +582,10 @@ public class TweetStreamer implements java.io.Serializable {
 
 	public void setPredictions(PredictionReader predictions) {
 		this.predictions = predictions;
+	}
+	
+	public String getComboCsvHeader() {
+		return "\"isTrumpTweet\";\"isNewsTweet\";\"isFakeNewsTweet\";\"isDemocratsTweet\";\"isPoliticsTweet\"";		
 	}
 	
 }
