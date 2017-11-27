@@ -93,11 +93,15 @@ public class TimeComboPrediction implements java.io.Serializable {
 	public Combo getCombo() {
 		return combo;
 	}
-
-	public void setCombo(Combo combo) {
-		this.combo = combo;
+	
+	public void buildCombo() {
+		this.combo = new Combo(isTrumpTweet,
+							   isNewsTweet,
+							   isFakeNewsTweet,
+							   isDemocratsTweet,
+							   isPoliticsTweet);
 	}
-
+	
 	public Time getTime() {
 		return time;
 	}
@@ -112,7 +116,6 @@ public class TimeComboPrediction implements java.io.Serializable {
 
 	public void setTrumpTweet(boolean isTrumpTweet) {
 		this.isTrumpTweet = isTrumpTweet;
-		combo.setTrumpTweet(isTrumpTweet);
 	}
 
 	public boolean isNewsTweet() {
@@ -121,7 +124,6 @@ public class TimeComboPrediction implements java.io.Serializable {
 
 	public void setNewsTweet(boolean isNewsTweet) {
 		this.isNewsTweet = isNewsTweet;
-		combo.setNewsTweet(isNewsTweet);
 	}
 
 	public boolean isFakeNewsTweet() {
@@ -130,7 +132,6 @@ public class TimeComboPrediction implements java.io.Serializable {
 
 	public void setFakeNewsTweet(boolean isFakeNewsTweet) {
 		this.isFakeNewsTweet = isFakeNewsTweet;
-		combo.setFakeNewsTweet(isFakeNewsTweet);
 	}
 
 	public boolean isDemocratsTweet() {
@@ -139,7 +140,6 @@ public class TimeComboPrediction implements java.io.Serializable {
 
 	public void setDemocratsTweet(boolean isDemocratsTweet) {
 		this.isDemocratsTweet = isDemocratsTweet;
-		combo.setDemocratsTweet(isDemocratsTweet);
 	}
 
 	public boolean isPoliticsTweet() {
@@ -148,7 +148,6 @@ public class TimeComboPrediction implements java.io.Serializable {
 
 	public void setPoliticsTweet(boolean isPoliticsTweet) {
 		this.isPoliticsTweet = isPoliticsTweet;
-		combo.setPoliticsTweet(isPoliticsTweet);
 	}
 
 	public double getCount() {

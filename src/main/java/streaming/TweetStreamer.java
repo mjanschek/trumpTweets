@@ -106,10 +106,8 @@ public class TweetStreamer implements java.io.Serializable {
 			JavaDStream<Tuple3<Combo, TimeComboPrediction, Tuple5<Integer, Integer, Integer, Integer, Integer>>> comboPredictionMatches = 
 					tweetsComboCounts.map(mapComboToPrediction());
 			
-			// if activated, evaluate predictions and write to file
-			if(AppProperties.isEvalPredictions()) {
-				comboPredictionMatches.foreachRDD(writePredictionEval(AppProperties.getWorkDir() + AppProperties.getPredictionsEvalFilename()));
-			}
+			// evaluate predictions and write to file
+			comboPredictionMatches.foreachRDD(writePredictionEval(AppProperties.getWorkDir() + AppProperties.getPredictionsEvalFilename()));
 		}
 		
 		
@@ -465,12 +463,6 @@ public class TweetStreamer implements java.io.Serializable {
 					String header = "\"timestamp\";"
 									+ new Combo().getCsvHeader() + ";"
 									+ "\"time\";"
-									+ "\"count\";"
-									+ "\"meanTextLength\";"
-									+ "\"totalHashtagCount\";"
-									+ "\"totalTrumpCount\";"
-									+ "\"totalSensitiveCount\";"
-									+ "\"hasPrediction\";"
 									+ "\"errorCount\";"
 									+ "\"errorCountRel\";"
 									+ "\"errorMeanTextLength\";"
@@ -491,7 +483,6 @@ public class TweetStreamer implements java.io.Serializable {
 				
 				for(Tuple3<Combo, TimeComboPrediction, Tuple5<Integer, Integer, Integer, Integer, Integer>> comboPrediction:comboPredictions) {
 					try {
-						Boolean hasPrediction;
 						
 						Double errorCount;
 						Double errorMeanTextLength;
@@ -507,22 +498,20 @@ public class TweetStreamer implements java.io.Serializable {
 						
 						Combo combo = comboPrediction._1();
 						
-						Integer count = comboPrediction._3()._1();
+						Double count = (double) comboPrediction._3()._1();
 			        	Double  meanTextLength = (double) comboPrediction._3()._2()/count;
-			        	Integer totalHashtagCount = comboPrediction._3()._3();;
-			        	Integer totalTrumpCount = comboPrediction._3()._4();;
-			        	Integer totalSensitiveCount = comboPrediction._3()._5();
+			        	Double totalHashtagCount = (double) comboPrediction._3()._3();;
+			        	Double totalTrumpCount = (double) comboPrediction._3()._4();;
+			        	Double totalSensitiveCount = (double) comboPrediction._3()._5();
 	
 						Date timestamp = new java.util.Date();
 						String timeStr;
 	
 						TimeComboPrediction tpc = comboPrediction._2();
 						if(tpc==null) {
-							hasPrediction = false;
 							timeStr = sdf.format(cal.getTime());
 							
 							combo = comboPrediction._1();
-							
 							
 							errorCount = (double) count;
 							errorMeanTextLength = (double) meanTextLength;
@@ -538,7 +527,6 @@ public class TweetStreamer implements java.io.Serializable {
 							
 							meanErrorRel = 1.0;
 						} else {
-							hasPrediction = true;
 							
 							combo = tpc.getCombo();
 							
@@ -551,14 +539,28 @@ public class TweetStreamer implements java.io.Serializable {
 							Double predTotalTrumpCount = tpc.getTotalTrumpCount();
 							Double predTotalSensitiveCount = tpc.getTotalSensitiveCount();
 							
-							errorCount = (double) count - predCount;
-							errorMeanTextLength = (double) meanTextLength - predMeanTextLength;
-							errorTotalHashtagCount = (double) totalHashtagCount - predTotalHashtagCount;
-							errorTotalTrumpCount = (double) totalTrumpCount - predTotalTrumpCount;
-							errorTotalSensitiveCount = (double) totalSensitiveCount - predTotalSensitiveCount;
+							// "fix" relative error @ truth=0
+							if(meanTextLength == 0) {
+								meanTextLength = 0.01; //less than 1/minute
+							}
+							if(totalHashtagCount == 0) {
+								totalHashtagCount = 0.01; //less than 1/minute
+							}
+							if(totalTrumpCount == 0) {
+								totalTrumpCount = 0.01; //less than 1/minute
+							}
+							if(totalSensitiveCount == 0) {
+								totalSensitiveCount = 0.01; //less than 1/minute
+							}
+
+							errorCount = count - predCount;
+							errorMeanTextLength = predMeanTextLength - meanTextLength;
+							errorTotalHashtagCount = predTotalHashtagCount - totalHashtagCount;
+							errorTotalTrumpCount = predTotalTrumpCount - totalTrumpCount;
+							errorTotalSensitiveCount = predTotalSensitiveCount - totalSensitiveCount;
 							
 							errorCountRel = Math.abs(errorCount/count);
-							errorMeanTextLengthRel = Math.abs(errorMeanTextLength/meanTextLength);
+							errorMeanTextLengthRel = Math.abs(errorMeanTextLength)/meanTextLength;
 							errorTotalHashtagCountRel = Math.abs(errorTotalHashtagCount/totalHashtagCount);
 							errorTotalTrumpCountRel = Math.abs(errorTotalTrumpCount/totalTrumpCount);
 							errorTotalSensitiveCountRel = Math.abs(errorTotalSensitiveCount/totalSensitiveCount);
@@ -573,12 +575,6 @@ public class TweetStreamer implements java.io.Serializable {
 															 Boolean.toString(combo.isDemocratsTweet()),
 															 Boolean.toString(combo.isPoliticsTweet()),
 															 timeStr,
-															 Double.toString(count),
-															 Double.toString(meanTextLength),
-															 Integer.toString(totalHashtagCount),
-															 Integer.toString(totalTrumpCount),
-															 Integer.toString(totalSensitiveCount),
-															 Boolean.toString(hasPrediction),
 															 Double.toString(errorCount),
 															 Double.toString(errorCountRel),
 															 Double.toString(errorMeanTextLength),

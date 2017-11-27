@@ -17,8 +17,6 @@ public class AppProperties {
     
     private static boolean usePredictions;
     
-    private static boolean evalPredictions;
-    
     private static boolean writeTweetsSavefile;
     
     private static boolean writeComboSavefile;
@@ -84,8 +82,6 @@ public class AppProperties {
 
 		setUsePredictions(Boolean.parseBoolean(properties.getProperty("usePredictions")));
 		setPredictionsFilename(properties.getProperty("predictionsFilename"));
-		
-		setEvalPredictions(Boolean.parseBoolean(properties.getProperty("evalPredictions")));
 		setPredictionsEvalFilename(properties.getProperty("predictionsEvalFilename"));
 	}
 
@@ -114,14 +110,6 @@ public class AppProperties {
 
 	public static void setUsePredictions(boolean usePredictions) {
 		AppProperties.usePredictions = usePredictions;
-	}
-
-	public static boolean isEvalPredictions() {
-		return evalPredictions;
-	}
-
-	public static void setEvalPredictions(boolean evalPredictions) {
-		AppProperties.evalPredictions = evalPredictions;
 	}
 
 	public static boolean isWriteTweetsSavefile() {

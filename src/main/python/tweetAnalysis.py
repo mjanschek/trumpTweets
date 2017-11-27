@@ -13,7 +13,7 @@ comboHistory = pd.read_csv(comboHistoryFile,
                            sep=";",
                            header = 0)
 
-# transform timestamp strings to datetime format
+# transform timestamp strings to datetime format, add +1 for CET Winter
 comboHistory['timestamp'] = pd.to_datetime(comboHistory['timestamp']) + timedelta(hours=1)
 
 # make predictions by calculatin mean metrics for every second of a day

@@ -7,8 +7,7 @@ Contents:
 - Getting started
 
 ## Project description
-The project descrition is available as notebook at target/tweetAnalysis.ipynb.
-This notebook is also available compiled as html at target/tweetAnalysis.html.
+The project descrition is available as notebook at [target/tweetAnalysis.ipynb][0].
 
 ## Requirements
 Following programs and libraries should be installed and functioning for running this project and its specified application part.
@@ -16,7 +15,7 @@ Following programs and libraries should be installed and functioning for running
 ### Stream Application Eclipse Project
 * JDK 8
 * Eclipse with Gradle Plugin
-** Personally, I used "Buildship Gradle Integration" which can be installed via the Eclipse Marketplace
+  * Personally, I used "Buildship Gradle Integration" which can be installed via the Eclipse Marketplace
 * Spark 2.2.0
 
 ### Stream Application only (JAR file is provided in projectfoler/target)
@@ -25,14 +24,14 @@ Following programs and libraries should be installed and functioning for running
 
 ### Batch Analysis Python Script
 * Python 3.5
-** python libraries:
-** pandas
-** numpy
-** datetime
+  * python libraries:
+  * pandas
+  * numpy
+  * datetime
 
 ### Batch Analysis IPython Notebook
 Requirements as python script plus:
-** matplotlib (for plots)
+  * matplotlib (for plots)
 * Jupyter
 
 ## Getting started
@@ -69,3 +68,5 @@ Requirements as python script plus:
 - By default, your webbrowser will open the jupyter GUI
 - Open tweetAnalysis.ipynb
 - Run the notebook step-by-step
+
+[0]: https://github.com/gargi/trumpTweets/blob/master/src/main/python/tweetAnalysis.ipynb "Tweet Analysis Notebook"
