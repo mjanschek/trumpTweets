@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 
 import org.apache.spark.SparkConf;
@@ -57,12 +56,11 @@ import twitter4j.UserMentionEntity;
 public class TweetStreamer implements java.io.Serializable {
 	
 	private PredictionReader predictions;
-	private HashMap<Integer, TimeComboPrediction> predMap;
 	
 	// constructor, get predictions object
 	public TweetStreamer(PredictionReader predictions) {
 		this.predictions = predictions;
-		this.predMap = predictions.getTimeComboPredictionHashMap();
+//		this.predMap = predictions.getTimeComboPredictionHashMap();
 	}
 
 	public void stream() throws TwitterException {
@@ -328,68 +326,36 @@ public class TweetStreamer implements java.io.Serializable {
 	
 	public Function<JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, Tuple5<Double, Double, Double, Double, Double>>,
 	   				JavaPairRDD<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>>> joinWithPredictionBatch(JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>,String>,TimeComboPrediction> batch) {
-	return new Function<JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>,
-									Tuple5<Double, Double, Double, Double, Double>>,
-			   			JavaPairRDD<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>>>(){
+		return new Function<JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>,
+										Tuple5<Double, Double, Double, Double, Double>>,
+				   			JavaPairRDD<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>>>(){
 
-		@Override
-		public JavaPairRDD<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>> call(
-			   JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
-	   							  Tuple5<Double, Double, Double, Double, Double>> streamRDD) throws Exception {
-			
-			// TODO Auto-generated method stub
-			JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
-						Tuple2<Tuple5<Double, Double, Double, Double, Double>, TimeComboPrediction>> joinedData = streamRDD.join(batch);
-			return joinedData.mapToPair(new PairFunction<Tuple2<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
-																Tuple2<Tuple5<Double, Double, Double, Double, Double>, TimeComboPrediction>>,
-																TimeComboPrediction,
-																Tuple5<Double, Double, Double, Double, Double>>(){
-
-				@Override
-				public Tuple2<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>> call(
-					   Tuple2<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>,
-					   Tuple2<Tuple5<Double, Double, Double, Double, Double>, TimeComboPrediction>> t)
-						throws Exception {
-					// TODO Auto-generated method stub
-					return new Tuple2<>(t._2._2,t._2._1);
-				}
-			});
-		}
-	};
-}
-	
-	
-	/*
-	 * generate a valid hashkey, get the corresponding prediction and map it to the right combo and it's metrics
-	 */
-	public PairFunction<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double, Double, Double, Double, Double>>,
-						TimeComboPrediction,
-						Tuple5<Double, Double, Double, Double, Double>> mapComboToPrediction() {
-		return new PairFunction<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double, Double, Double, Double, Double>>,
-									   TimeComboPrediction,
-									   Tuple5<Double, Double, Double, Double, Double>>(){
 			@Override
-			public Tuple2<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>> call(
-				   Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double, Double, Double, Double, Double>> tuple)
-						   throws Exception {
-				// get current time to build hashkey for prediction HashMap
-				Calendar cal 			= Calendar.getInstance();
-				SimpleDateFormat sdf 	= new SimpleDateFormat("HH:mm:ss");
-				String now 				= sdf.format(cal.getTime());
-				Integer hashKey 		= (now
-										+ tuple._1._1().toString() 
-										+ tuple._1._2().toString()
-										+ tuple._1._3().toString() 
-										+ tuple._1._4().toString()
-										+ tuple._1._5().toString()).hashCode();
-
-				TimeComboPrediction tcp = predMap.get(hashKey);
+			public JavaPairRDD<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>> call(
+				   JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
+		   							  Tuple5<Double, Double, Double, Double, Double>> streamRDD) throws Exception {
 				
-				return new Tuple2<>(tcp,
-									tuple._2);
-			}
-		};
-	}
+				// TODO Auto-generated method stub
+				JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
+							Tuple2<Tuple5<Double, Double, Double, Double, Double>, TimeComboPrediction>> joinedData = streamRDD.join(batch);
+				return joinedData.mapToPair(new PairFunction<Tuple2<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
+																	Tuple2<Tuple5<Double, Double, Double, Double, Double>, TimeComboPrediction>>,
+																	TimeComboPrediction,
+																	Tuple5<Double, Double, Double, Double, Double>>(){
+	
+					@Override
+					public Tuple2<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>> call(
+						   Tuple2<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>,
+						   Tuple2<Tuple5<Double, Double, Double, Double, Double>, TimeComboPrediction>> t)
+							throws Exception {
+						// TODO Auto-generated method stub
+						return new Tuple2<>(t._2._2,t._2._1);
+						}
+					});
+				}
+			};
+		}
+	
 	
 	public VoidFunction<JavaPairRDD<Status, Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>>> writeTweets(String filePath){
 		return new VoidFunction<JavaPairRDD<Status, Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>>>() {
