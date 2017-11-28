@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
@@ -55,10 +56,12 @@ import twitter4j.UserMentionEntity;
 @SuppressWarnings("serial")
 public class TweetStreamer implements java.io.Serializable {
 	
+	private PredictionReader predictions;
 	private HashMap<Integer, TimeComboPrediction> predMap;
 	
 	// constructor, get predictions object
 	public TweetStreamer(PredictionReader predictions) {
+		this.predictions = predictions;
 		this.predMap = predictions.getTimeComboPredictionHashMap();
 	}
 
@@ -103,8 +106,25 @@ public class TweetStreamer implements java.io.Serializable {
 		
 		// if activated, access predictions
 		if(AppProperties.isUsePredictions()) {
+			JavaRDD<TimeComboPrediction> predictionsBatch = jssc.sparkContext().parallelize(predictions.getTimeComboPredictionList()).cache();
+			
+			final JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, TimeComboPrediction> comboPredictionsBatch = 
+					predictionsBatch.mapToPair(new PairFunction<TimeComboPrediction, Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, TimeComboPrediction>(){
+
+				@Override
+				public Tuple2<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, TimeComboPrediction> call(TimeComboPrediction t) throws Exception {
+					// TODO Auto-generated method stub
+					return new Tuple2<>(new Tuple2<>(t.getTuple5(),t.getTime().toString()),t);
+				}
+				
+			}).cache();
+			
 			JavaPairDStream<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>> comboPredictionMatches = 
-					comboMeanCounts.mapToPair(mapComboToPrediction());
+					comboMeanCounts.mapToPair(addTime())
+					.transformToPair(joinWithPredictionBatch(comboPredictionsBatch));
+			
+//			JavaPairDStream<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>> comboPredictionMatches = 
+//					comboMeanCounts.mapToPair(mapComboToPrediction());
 			
 			// evaluate predictions and write to file
 			comboPredictionMatches.foreachRDD(writePredictionEval(AppProperties.getWorkDir() + AppProperties.getPredictionsEvalFilename()));
@@ -280,6 +300,64 @@ public class TweetStreamer implements java.io.Serializable {
 		};
 		
 	}
+		
+	
+	public PairFunction<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double, Double, Double, Double, Double>>,
+						Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
+						Tuple5<Double, Double, Double, Double, Double>> addTime() {
+		return new PairFunction<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double, Double, Double, Double, Double>>,
+								Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
+								Tuple5<Double, Double, Double, Double, Double>>(){
+			@Override
+			public Tuple2<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
+						  Tuple5<Double, Double, Double, Double, Double>> call(
+				   Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, 
+				   		  Tuple5<Double, Double, Double, Double, Double>> t) throws Exception {
+				
+				Calendar cal 			= Calendar.getInstance();
+				SimpleDateFormat sdf 	= new SimpleDateFormat("HH:mm:ss");
+				String now 				= sdf.format(cal.getTime());
+
+				return new Tuple2<>(new Tuple2<>(t._1,
+												 now),
+												 t._2);
+			}
+		};
+	}
+	
+	
+	public Function<JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, Tuple5<Double, Double, Double, Double, Double>>,
+	   				JavaPairRDD<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>>> joinWithPredictionBatch(JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>,String>,TimeComboPrediction> batch) {
+	return new Function<JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>,
+									Tuple5<Double, Double, Double, Double, Double>>,
+			   			JavaPairRDD<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>>>(){
+
+		@Override
+		public JavaPairRDD<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>> call(
+			   JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
+	   							  Tuple5<Double, Double, Double, Double, Double>> streamRDD) throws Exception {
+			
+			// TODO Auto-generated method stub
+			JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
+						Tuple2<Tuple5<Double, Double, Double, Double, Double>, TimeComboPrediction>> joinedData = streamRDD.join(batch);
+			return joinedData.mapToPair(new PairFunction<Tuple2<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
+																Tuple2<Tuple5<Double, Double, Double, Double, Double>, TimeComboPrediction>>,
+																TimeComboPrediction,
+																Tuple5<Double, Double, Double, Double, Double>>(){
+
+				@Override
+				public Tuple2<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>> call(
+					   Tuple2<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>,
+					   Tuple2<Tuple5<Double, Double, Double, Double, Double>, TimeComboPrediction>> t)
+						throws Exception {
+					// TODO Auto-generated method stub
+					return new Tuple2<>(t._2._2,t._2._1);
+				}
+			});
+		}
+	};
+}
+	
 	
 	/*
 	 * generate a valid hashkey, get the corresponding prediction and map it to the right combo and it's metrics
@@ -576,17 +654,17 @@ public class TweetStreamer implements java.io.Serializable {
 			}
 		};
 	}
+
+	public PredictionReader getPredictions() {
+		return predictions;
+	}
+
+	public void setPredictions(PredictionReader predictions) {
+		this.predictions = predictions;
+	}
 	
 	public String getComboCsvHeader() {
 		return "\"isTrumpTweet\";\"isNewsTweet\";\"isFakeNewsTweet\";\"isDemocratsTweet\";\"isPoliticsTweet\"";		
-	}
-
-	public HashMap<Integer, TimeComboPrediction> getPredMap() {
-		return predMap;
-	}
-
-	public void setPredMap(HashMap<Integer, TimeComboPrediction> predMap) {
-		this.predMap = predMap;
 	}
 	
 }

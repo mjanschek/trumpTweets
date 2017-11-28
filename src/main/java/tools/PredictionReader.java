@@ -15,6 +15,8 @@ import repositories.TimeComboPrediction;
  */
 @SuppressWarnings("serial")
 public class PredictionReader implements java.io.Serializable{
+
+	private List<TimeComboPrediction> timeComboPredictionList;
 	
 	private HashMap<Integer, TimeComboPrediction> timeComboPredictionHashMap;
 	
@@ -37,19 +39,20 @@ public class PredictionReader implements java.io.Serializable{
 	 * after this, build the HashMap
 	 */
 	public void updateTimeComboPredictionList() throws IllegalStateException, FileNotFoundException {
-		List<TimeComboPrediction> timeComboPredictionList = new CsvToBeanBuilder<TimeComboPrediction>(new FileReader(getTimeComboPredictionFilepath()))
+		setTimeComboPredictionList(new CsvToBeanBuilder<TimeComboPrediction>(new FileReader(getTimeComboPredictionFilepath()))
 				.withSeparator(';')
 				.withQuoteChar('"')
 				.withType(TimeComboPrediction.class)
 				.build()
-				.parse();
-		buildHashMap(timeComboPredictionList);
+				.parse());
+		buildHashMap();
+		
 	}
 	
 	/*
 	 * build the HashMap, use combination of flag-combo and time string as key
 	 */
-	public void buildHashMap(List<TimeComboPrediction> timeComboPredictionList) {
+	public void buildHashMap() {
 		timeComboPredictionHashMap = new HashMap<Integer, TimeComboPrediction>();
 		for (TimeComboPrediction tcp : timeComboPredictionList) {
 			timeComboPredictionHashMap.put(tcp.toFastString().hashCode(), tcp);
@@ -59,6 +62,13 @@ public class PredictionReader implements java.io.Serializable{
 	/*
 	 * Getters and Setters...
 	 */
+	public List<TimeComboPrediction> getTimeComboPredictionList() {
+		return timeComboPredictionList;
+	}
+
+	public void setTimeComboPredictionList(List<TimeComboPrediction> timeComboPredictionList) {
+		this.timeComboPredictionList = timeComboPredictionList;
+	}
 
 	public HashMap<Integer, TimeComboPrediction> getTimeComboPredictionHashMap() {
 		return timeComboPredictionHashMap;
