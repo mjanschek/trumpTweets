@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.spark.SparkConf;
@@ -54,11 +55,11 @@ import twitter4j.UserMentionEntity;
 @SuppressWarnings("serial")
 public class TweetStreamer implements java.io.Serializable {
 	
-	private PredictionReader predictions;
+	private HashMap<Integer, TimeComboPrediction> predMap;
 	
 	// constructor, get predictions object
 	public TweetStreamer(PredictionReader predictions) {
-		this.predictions = predictions;
+		this.predMap = predictions.getTimeComboPredictionHashMap();
 	}
 
 	public void stream() throws TwitterException {
@@ -304,7 +305,7 @@ public class TweetStreamer implements java.io.Serializable {
 										+ tuple._1._4().toString()
 										+ tuple._1._5().toString()).hashCode();
 
-				TimeComboPrediction tcp = predictions.getTimeComboPredictionHashMap().get(hashKey);
+				TimeComboPrediction tcp = predMap.get(hashKey);
 				
 				return new Tuple2<>(tcp,
 									tuple._2);
@@ -575,17 +576,17 @@ public class TweetStreamer implements java.io.Serializable {
 			}
 		};
 	}
-
-	public PredictionReader getPredictions() {
-		return predictions;
-	}
-
-	public void setPredictions(PredictionReader predictions) {
-		this.predictions = predictions;
-	}
 	
 	public String getComboCsvHeader() {
 		return "\"isTrumpTweet\";\"isNewsTweet\";\"isFakeNewsTweet\";\"isDemocratsTweet\";\"isPoliticsTweet\"";		
+	}
+
+	public HashMap<Integer, TimeComboPrediction> getPredMap() {
+		return predMap;
+	}
+
+	public void setPredMap(HashMap<Integer, TimeComboPrediction> predMap) {
+		this.predMap = predMap;
 	}
 	
 }
