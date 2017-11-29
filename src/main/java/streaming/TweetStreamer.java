@@ -1,11 +1,12 @@
 package streaming;
 
 import repositories.AppProperties;
-import repositories.TimeComboPrediction;
+//import repositories.TimeComboPrediction;
+import scala.Tuple11;
 import scala.Tuple2;
 import scala.Tuple5;
+import scala.Tuple6;
 import tools.CSVUtils;
-import tools.PredictionReader;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -16,7 +17,6 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -55,12 +55,8 @@ import twitter4j.UserMentionEntity;
 @SuppressWarnings("serial")
 public class TweetStreamer implements java.io.Serializable {
 	
-	private PredictionReader predictions;
-	
 	// constructor, get predictions object
-	public TweetStreamer(PredictionReader predictions) {
-		this.predictions = predictions;
-//		this.predMap = predictions.getTimeComboPredictionHashMap();
+	public TweetStreamer() {
 	}
 
 	public void stream() throws TwitterException {
@@ -78,13 +74,14 @@ public class TweetStreamer implements java.io.Serializable {
 		/*
 		 * ################################# STREAMING STARTS HERE #################################
 		 */
-		
 		// start actual stream, use filter given by AppProperties.getFilters()
 		JavaReceiverInputDStream<Status> stream = TwitterUtils.createStream(jssc, AppProperties.getFilters());
 		
 		// filter tweets (details in filterTweets()) and build <Status,Combo> pair
 		JavaPairDStream<Status,Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>> tweetsComboMatch = filterTweets(stream)
 														 .mapToPair(statusAndCombo());
+		
+		
 
 		// if activated, write all filtered tweets to a file
 		if(AppProperties.isWriteTweetsSavefile()) {
@@ -104,25 +101,59 @@ public class TweetStreamer implements java.io.Serializable {
 		
 		// if activated, access predictions
 		if(AppProperties.isUsePredictions()) {
-			JavaRDD<TimeComboPrediction> predictionsBatch = jssc.sparkContext().parallelize(predictions.getTimeComboPredictionList()).cache();
+			JavaRDD<String> predBatch = jssc.sparkContext().textFile(AppProperties.getWorkDir() + AppProperties.getPredictionsFilename());
 			
-			final JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, TimeComboPrediction> comboPredictionsBatch = 
-					predictionsBatch.mapToPair(new PairFunction<TimeComboPrediction, Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, TimeComboPrediction>(){
+			JavaRDD<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>> rows = predBatch.filter(new Function<String,Boolean>(){
 
 				@Override
-				public Tuple2<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, TimeComboPrediction> call(TimeComboPrediction t) throws Exception {
+				public Boolean call(String v1) throws Exception {
 					// TODO Auto-generated method stub
-					return new Tuple2<>(new Tuple2<>(t.getTuple5(),t.getTime().toString()),t);
+					return !v1.contains("time");
+				}
+				
+			}).map(new Function<String,Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>>(){
+
+				@Override
+				public Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double> call(
+						String string) throws Exception {
+					
+					String[] stringArray = string.trim().replaceAll("\"", "").split(";");
+					// TODO Auto-generated method stub
+					return new Tuple11<>(stringArray[0],
+										 Boolean.parseBoolean(stringArray[1]),
+										 Boolean.parseBoolean(stringArray[2]),
+										 Boolean.parseBoolean(stringArray[3]),
+										 Boolean.parseBoolean(stringArray[4]),
+										 Boolean.parseBoolean(stringArray[5]),
+										 Double.parseDouble(stringArray[6]),
+										 Double.parseDouble(stringArray[7]),
+										 Double.parseDouble(stringArray[8]),
+										 Double.parseDouble(stringArray[9]),
+										 Double.parseDouble(stringArray[10]));
+				}
+				
+			});
+
+			JavaPairRDD<Tuple6<String, Boolean, Boolean, Boolean, Boolean, Boolean>,
+					    Tuple5<Double, Double, Double, Double, Double>> comboPredictionsBatch = 
+					    		rows.mapToPair(new PairFunction<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>,
+																Tuple6<String, Boolean, Boolean, Boolean, Boolean, Boolean>, 
+																Tuple5<Double, Double, Double, Double, Double>>(){
+
+				@Override
+				public Tuple2<Tuple6<String,Boolean, Boolean, Boolean, Boolean, Boolean>, 
+							  Tuple5<Double, Double, Double, Double, Double>> call(Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double> tcp) throws Exception {
+					// TODO Auto-generated method stub
+					return new Tuple2<>(new Tuple6<>(tcp._1(), tcp._2(),tcp._3(),tcp._4(),tcp._5(),tcp._6()),
+										new Tuple5<>(tcp._7(),tcp._8(),tcp._9(),tcp._10(),tcp._11()));
 				}
 				
 			}).cache();
 			
-			JavaPairDStream<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>> comboPredictionMatches = 
+			JavaPairDStream<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>, 
+							Tuple5<Double, Double, Double, Double, Double>> comboPredictionMatches = 
 					comboMeanCounts.mapToPair(addTime())
 					.transformToPair(joinWithPredictionBatch(comboPredictionsBatch));
-			
-//			JavaPairDStream<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>> comboPredictionMatches = 
-//					comboMeanCounts.mapToPair(mapComboToPrediction());
 			
 			// evaluate predictions and write to file
 			comboPredictionMatches.foreachRDD(writePredictionEval(AppProperties.getWorkDir() + AppProperties.getPredictionsEvalFilename()));
@@ -301,60 +332,65 @@ public class TweetStreamer implements java.io.Serializable {
 		
 	
 	public PairFunction<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double, Double, Double, Double, Double>>,
-						Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
+						Tuple6<String,Boolean, Boolean, Boolean, Boolean, Boolean>, 
 						Tuple5<Double, Double, Double, Double, Double>> addTime() {
 		return new PairFunction<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double, Double, Double, Double, Double>>,
-								Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
+								Tuple6<String,Boolean, Boolean, Boolean, Boolean, Boolean>, 
 								Tuple5<Double, Double, Double, Double, Double>>(){
 			@Override
-			public Tuple2<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
-						  Tuple5<Double, Double, Double, Double, Double>> call(
-				   Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, 
-				   		  Tuple5<Double, Double, Double, Double, Double>> t) throws Exception {
+			public Tuple2<Tuple6<String,Boolean, Boolean, Boolean, Boolean, Boolean>, 
+				   Tuple5<Double, Double, Double, Double, Double>> call(
+						   Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, 
+						   		  Tuple5<Double, Double, Double, Double, Double>> t) throws Exception {
 				
 				Calendar cal 			= Calendar.getInstance();
 				SimpleDateFormat sdf 	= new SimpleDateFormat("HH:mm:ss");
 				String now 				= sdf.format(cal.getTime());
 
-				return new Tuple2<>(new Tuple2<>(t._1,
-												 now),
+				return new Tuple2<>(new Tuple6<>(now,
+												 t._1._1(),
+												 t._1._2(),
+												 t._1._3(),
+												 t._1._4(),
+												 t._1._5()),
 												 t._2);
 			}
 		};
 	}
 	
 	
-	public Function<JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, Tuple5<Double, Double, Double, Double, Double>>,
-	   				JavaPairRDD<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>>> joinWithPredictionBatch(JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>,String>,TimeComboPrediction> batch) {
-		return new Function<JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>,
+	public Function<JavaPairRDD<Tuple6<String,Boolean, Boolean, Boolean, Boolean, Boolean>, 
+								Tuple5<Double, Double, Double, Double, Double>>,
+					JavaPairRDD<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>,
+								Tuple5<Double, Double, Double, Double, Double>>> joinWithPredictionBatch(JavaPairRDD<Tuple6<String,Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double, Double, Double, Double, Double>> batch) {
+		return new Function<JavaPairRDD<Tuple6<String,Boolean, Boolean, Boolean, Boolean, Boolean>, 
 										Tuple5<Double, Double, Double, Double, Double>>,
-				   			JavaPairRDD<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>>>(){
+							JavaPairRDD<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>,
+										Tuple5<Double, Double, Double, Double, Double>>>(){
 
 			@Override
-			public JavaPairRDD<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>> call(
-				   JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
-		   							  Tuple5<Double, Double, Double, Double, Double>> streamRDD) throws Exception {
+			public JavaPairRDD<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>, Tuple5<Double, Double, Double, Double, Double>> call(
+				   JavaPairRDD<Tuple6<String,Boolean, Boolean, Boolean, Boolean, Boolean>, 
+							   Tuple5<Double, Double, Double, Double, Double>> streamRDD) throws Exception {
 				
 				// TODO Auto-generated method stub
-				JavaPairRDD<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
-							Tuple2<Tuple5<Double, Double, Double, Double, Double>, TimeComboPrediction>> joinedData = streamRDD.join(batch);
-				return joinedData.mapToPair(new PairFunction<Tuple2<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>, 
-																	Tuple2<Tuple5<Double, Double, Double, Double, Double>, TimeComboPrediction>>,
-																	TimeComboPrediction,
+				JavaPairRDD<Tuple6<String, Boolean, Boolean, Boolean, Boolean, Boolean>, 
+							Tuple2<Tuple5<Double, Double, Double, Double, Double>, Tuple5<Double, Double, Double, Double, Double>>> joinedData = streamRDD.join(batch);
+				return joinedData.mapToPair(new PairFunction<Tuple2<Tuple6<String, Boolean, Boolean, Boolean, Boolean, Boolean>, 
+																	Tuple2<Tuple5<Double, Double, Double, Double, Double>, Tuple5<Double, Double, Double, Double, Double>>>,
+																	Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>,
 																	Tuple5<Double, Double, Double, Double, Double>>(){
-	
 					@Override
-					public Tuple2<TimeComboPrediction, Tuple5<Double, Double, Double, Double, Double>> call(
-						   Tuple2<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, String>,
-						   Tuple2<Tuple5<Double, Double, Double, Double, Double>, TimeComboPrediction>> t)
-							throws Exception {
+					public Tuple2<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>, Tuple5<Double, Double, Double, Double, Double>> call(
+							Tuple2<Tuple6<String, Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple2<Tuple5<Double, Double, Double, Double, Double>, Tuple5<Double, Double, Double, Double, Double>>> t)
+									throws Exception {
 						// TODO Auto-generated method stub
-						return new Tuple2<>(t._2._2,t._2._1);
+						return new Tuple2<>(new Tuple11<>(t._1._1(),t._1._2(),t._1._3(),t._1._4(),t._1._5(),t._1._6(),t._2._2._1(),t._2._2._2(),t._2._2._3(),t._2._2._4(),t._2._2._5()), t._2._1) ;
 						}
-					});
-				}
-			};
-		}
+				});
+			}
+		};
+	}
 	
 	
 	public VoidFunction<JavaPairRDD<Status, Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>>> writeTweets(String filePath){
@@ -531,14 +567,18 @@ public class TweetStreamer implements java.io.Serializable {
 		};
     }
  	 	
-	public VoidFunction<JavaPairRDD<TimeComboPrediction, Tuple5<Double,Double,Double,Double,Double>>> writePredictionEval(String filePath){
-		return new VoidFunction<JavaPairRDD<TimeComboPrediction, Tuple5<Double,Double,Double,Double,Double>>>(){
+	public VoidFunction<JavaPairRDD<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>, 
+									Tuple5<Double,Double,Double,Double,Double>>> writePredictionEval(String filePath){
+		return new VoidFunction<JavaPairRDD<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>, 
+											Tuple5<Double,Double,Double,Double,Double>>>(){
 	
 			@Override
-			public void call(JavaPairRDD<TimeComboPrediction, Tuple5<Double,Double,Double,Double,Double>> allComboPredictions)
+			public void call(JavaPairRDD<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>,
+										 Tuple5<Double,Double,Double,Double,Double>> allComboPredictions)
 					throws Exception {
 				// TODO Auto-generated method stub
-				List<Tuple2<TimeComboPrediction, Tuple5<Double,Double,Double,Double,Double>>> comboPredictions = allComboPredictions.collect();
+				List<Tuple2<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>,
+							Tuple5<Double,Double,Double,Double,Double>>> comboPredictions = allComboPredictions.collect();
 				
 				boolean firstLine = false;
 				File f = new File(filePath);
@@ -561,12 +601,14 @@ public class TweetStreamer implements java.io.Serializable {
 					writer.write(header);
 				}
 				
-				for(Tuple2<TimeComboPrediction, Tuple5<Double,Double,Double,Double,Double>> comboPrediction:comboPredictions) {
+				for(Tuple2<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>,
+						   Tuple5<Double,Double,Double,Double,Double>> comboPrediction:comboPredictions) {
 					try {
-						TimeComboPrediction tcp = comboPrediction._1;
-						if(tcp==null) {
-							return;
-						}
+						Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double> tcp = comboPrediction._1;
+						
+//						if(tcp==null) {
+//							return;
+//						}
 						
 						Double errorCount;
 						Double errorMeanTextLength;
@@ -581,13 +623,12 @@ public class TweetStreamer implements java.io.Serializable {
 			        	Double meanSensitiveCount 	= comboPrediction._2()._5();
 	
 						Date timestamp = new java.util.Date();
-						String timeStr = tcp.getTime().toString();
 							
-						Double predCount 				= tcp.getCount();
-						Double predMeanTextLength 		= tcp.getMeanTextLength();
-						Double predMeanHashtagCount 	= tcp.getMeanHashtagCount();
-						Double predMeanTrumpCount 		= tcp.getMeanTrumpCount();
-						Double predMeanSensitiveCount 	= tcp.getMeanSensitiveCount();
+						Double predCount 				= tcp._7();
+						Double predMeanTextLength 		= tcp._8();
+						Double predMeanHashtagCount 	= tcp._9();
+						Double predMeanTrumpCount 		= tcp._10();
+						Double predMeanSensitiveCount 	= tcp._11();
 						
 						errorCount 					= count - predCount;
 						errorMeanTextLength 		= predMeanTextLength - meanTextLength;
@@ -596,12 +637,12 @@ public class TweetStreamer implements java.io.Serializable {
 						errorMeanSensitiveCount 	= predMeanSensitiveCount - meanSensitiveCount;
 						
 						List<String> metrics = Arrays.asList(timestamp.toString(),
-															 timeStr,
-															 Boolean.toString(tcp.isTrumpTweet()),
-															 Boolean.toString(tcp.isNewsTweet()),
-															 Boolean.toString(tcp.isFakeNewsTweet()),
-															 Boolean.toString(tcp.isDemocratsTweet()),
-															 Boolean.toString(tcp.isPoliticsTweet()),
+															 tcp._1(),
+															 Boolean.toString(tcp._2()),
+															 Boolean.toString(tcp._3()),
+															 Boolean.toString(tcp._4()),
+															 Boolean.toString(tcp._5()),
+															 Boolean.toString(tcp._6()),
 															 Double.toString(errorCount),
 															 Double.toString(errorMeanTextLength),
 															 Double.toString(errorMeanHashtagCount),
@@ -619,14 +660,6 @@ public class TweetStreamer implements java.io.Serializable {
 				writer.close();
 			}
 		};
-	}
-
-	public PredictionReader getPredictions() {
-		return predictions;
-	}
-
-	public void setPredictions(PredictionReader predictions) {
-		this.predictions = predictions;
 	}
 	
 	public String getComboCsvHeader() {
