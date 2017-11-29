@@ -37,9 +37,7 @@ Requirements as python script plus:
 ## Getting started
 
 ### Quickstart
-- (optional) Create a new directory, this is your working directory %WORKING_DIR% now
-  * Copy all files in %PROJECT_DIR%/target into this folder
-- Unpack all provided data files into this folder
+- Unpack %PROJECT_DIR%/release_0.1.zip into a directory, this is you %WORKING_DIR% now
 - Execute %WORKING_DIR%/startTweetStream.sh
 
 ### Building the project
