@@ -15,10 +15,10 @@ comboHistory = pd.read_csv(comboHistoryFile,
 
 # transform timestamp strings to datetime format, add +1 for CET Winter
 comboHistory['timestamp'] = pd.to_datetime(comboHistory['timestamp']) + timedelta(hours=1)
-comboHistory['time'] = comboHistory['time'].apply(lambda x: x.time())
 
 # make predictions by calculatin mean metrics for every second of a day
 newComboHistory         = comboHistory.copy()
+newComboHistory['time'] = comboHistory['timestamp'].apply(lambda x: x.time())
 timePredictions         = newComboHistory.groupby(['time',
                                                    'isTrumpTweet',
                                                    'isNewsTweet',
@@ -26,9 +26,9 @@ timePredictions         = newComboHistory.groupby(['time',
                                                    'isDemocratsTweet',
                                                    'isPoliticsTweet'])['count',
                                                                        'meanTextLength',
-                                                                       'meanHashtagCount',
-                                                                       'meanTrumpCount',
-                                                                       'meanSensitiveCount'].agg(np.mean).reset_index()
+                                                                       'totalHashtagCount',
+                                                                       'totalTrumpCount',
+                                                                       'totalSensitiveCount'].agg(np.mean).reset_index()
 
 # write timePredictions csv file
 timePredictions.to_csv(outputFile,

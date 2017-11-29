@@ -1,12 +1,13 @@
 package streaming;
 
 import repositories.AppProperties;
-//import repositories.TimeComboPrediction;
+
+import tools.CSVUtils;
+
 import scala.Tuple11;
 import scala.Tuple2;
 import scala.Tuple5;
 import scala.Tuple6;
-import tools.CSVUtils;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -17,9 +18,9 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
@@ -47,15 +48,17 @@ import twitter4j.UserMentionEntity;
  * 05) calculates metrics on the filtered tweets
  * 06) summarises these values for a timewindow of 60 seconds
  * 07) writes the summaries for every flag combination into a file 									!toggleable by editing appliction.properties.writeComboSavefile
- * 08) matches the summaries w.r.t. time and flag combination to a prediction						!toggleable by editing appliction.properties.usePredictions
- * 09) compares the prediction to the actual measured metrics
- * 10) writes this evaluation for every flag combination into a file 								!toggleable by editing appliction.properties.evalPredictions
+ * 08) creates a batch with prediction data															!toggleable by editing appliction.properties.usePredictions
+ * 08) matches the summaries w.r.t. time and flag combination to a prediction						!""
+ * 09) compares the prediction to the actual measured metrics										!""
+ * 10) writes this evaluation for every flag combination into a file 								!""
+ * 
  * 
  */
 @SuppressWarnings("serial")
 public class TweetStreamer implements java.io.Serializable {
 	
-	// constructor, get predictions object
+	// constructor
 	public TweetStreamer() {
 	}
 
@@ -80,8 +83,6 @@ public class TweetStreamer implements java.io.Serializable {
 		// filter tweets (details in filterTweets()) and build <Status,Combo> pair
 		JavaPairDStream<Status,Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>> tweetsComboMatch = filterTweets(stream)
 														 .mapToPair(statusAndCombo());
-		
-		
 
 		// if activated, write all filtered tweets to a file
 		if(AppProperties.isWriteTweetsSavefile()) {
@@ -101,62 +102,21 @@ public class TweetStreamer implements java.io.Serializable {
 		
 		// if activated, access predictions
 		if(AppProperties.isUsePredictions()) {
-			JavaRDD<String> predBatch = jssc.sparkContext().textFile(AppProperties.getWorkDir() + AppProperties.getPredictionsFilename());
 			
-			JavaRDD<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>> rows = predBatch.filter(new Function<String,Boolean>(){
-
-				@Override
-				public Boolean call(String v1) throws Exception {
-					// TODO Auto-generated method stub
-					return !v1.contains("time");
-				}
-				
-			}).map(new Function<String,Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>>(){
-
-				@Override
-				public Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double> call(
-						String string) throws Exception {
-					
-					String[] stringArray = string.trim().replaceAll("\"", "").split(";");
-					// TODO Auto-generated method stub
-					return new Tuple11<>(stringArray[0],
-										 Boolean.parseBoolean(stringArray[1]),
-										 Boolean.parseBoolean(stringArray[2]),
-										 Boolean.parseBoolean(stringArray[3]),
-										 Boolean.parseBoolean(stringArray[4]),
-										 Boolean.parseBoolean(stringArray[5]),
-										 Double.parseDouble(stringArray[6]),
-										 Double.parseDouble(stringArray[7]),
-										 Double.parseDouble(stringArray[8]),
-										 Double.parseDouble(stringArray[9]),
-										 Double.parseDouble(stringArray[10]));
-				}
-				
-			});
-
+			// access predictions as spark batch and cache it
+			// (this data will be used for joining every task)
 			JavaPairRDD<Tuple6<String, Boolean, Boolean, Boolean, Boolean, Boolean>,
-					    Tuple5<Double, Double, Double, Double, Double>> comboPredictionsBatch = 
-					    		rows.mapToPair(new PairFunction<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>,
-																Tuple6<String, Boolean, Boolean, Boolean, Boolean, Boolean>, 
-																Tuple5<Double, Double, Double, Double, Double>>(){
-
-				@Override
-				public Tuple2<Tuple6<String,Boolean, Boolean, Boolean, Boolean, Boolean>, 
-							  Tuple5<Double, Double, Double, Double, Double>> call(Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double> tcp) throws Exception {
-					// TODO Auto-generated method stub
-					return new Tuple2<>(new Tuple6<>(tcp._1(), tcp._2(),tcp._3(),tcp._4(),tcp._5(),tcp._6()),
-										new Tuple5<>(tcp._7(),tcp._8(),tcp._9(),tcp._10(),tcp._11()));
-				}
-				
-			}).cache();
-			
-			JavaPairDStream<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>, 
-							Tuple5<Double, Double, Double, Double, Double>> comboPredictionMatches = 
-					comboMeanCounts.mapToPair(addTime())
-					.transformToPair(joinWithPredictionBatch(comboPredictionsBatch));
-			
-			// evaluate predictions and write to file
-			comboPredictionMatches.foreachRDD(writePredictionEval(AppProperties.getWorkDir() + AppProperties.getPredictionsEvalFilename()));
+						Tuple5<Double, Double, Double, Double, Double>> predBatch = 
+						jssc.sparkContext().textFile(AppProperties.getWorkDir() + AppProperties.getPredictionsFilename())
+							.filter(filterHeader())
+							.map(parseTuple11())
+							.mapToPair(splitIntoKeyValuePair())
+							.cache();
+	
+			// join the stream with the batch and write evaluation results into a file
+			comboMeanCounts.mapToPair(addTime())
+						   .transformToPair(joinWithPredictionBatch(predBatch))
+						   .foreachRDD(writePredictionEval(AppProperties.getWorkDir() + AppProperties.getPredictionsEvalFilename()));
 		}
 		
 		
@@ -240,10 +200,11 @@ public class TweetStreamer implements java.io.Serializable {
 								Tuple5<Integer,Integer,Integer,Integer,Integer>>(){
 			
 			@Override
-			public Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Integer,Integer,Integer,Integer,Integer>> call(Tuple2<Status, Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>> input) throws Exception {
-				
-//				Status status 				= input._1;
-//				String text 				= input._1.getText();
+			public Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, 
+						  Tuple5<Integer,Integer,Integer,Integer,Integer>> call(
+								  Tuple2<Status,
+								  		 Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>> input) throws Exception {
+
 				
 				
 				Integer count 				= 1;
@@ -299,6 +260,9 @@ public class TweetStreamer implements java.io.Serializable {
 		};
 	}
 
+	/*
+	 * take all the date of this timewindow and build the mean values
+	 */
 	public PairFunction<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>,Tuple5<Integer,Integer,Integer,Integer,Integer>>,
 						Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>,
 						Tuple5<Double,Double,Double,Double,Double>>meanValues(){
@@ -306,31 +270,98 @@ public class TweetStreamer implements java.io.Serializable {
 							    Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>,
 							    Tuple5<Double,Double,Double,Double,Double>>(){
 
-									@Override
-									public Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double, Double, Double, Double, Double>> call(
-										   Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Integer, Integer, Integer, Integer, Integer>> t)
-											throws Exception {
-										// TODO Auto-generated method stub
-										
-										Double count 				= (double) t._2()._1();
-							        	Double meanTextLength 		= (double) t._2()._2()/count;
-							        	Double meanHashtagCount 	= (double) t._2()._3()/count;;
-							        	Double meanTrumpCount 		= (double) t._2()._4()/count;;
-							        	Double meanSensitiveCount 	= (double) t._2()._5()/count;
-										
-										
-										return new Tuple2<>(t._1,new Tuple5<>(count,
-																			  meanTextLength,
-																			  meanHashtagCount,
-																			  meanTrumpCount,
-																			  meanSensitiveCount));
-									}
-			
+			@Override
+			public Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double, Double, Double, Double, Double>> call(
+				   Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Integer, Integer, Integer, Integer, Integer>> t)
+					throws Exception {
+				// TODO Auto-generated method stub
+				
+				Double count 				= (double) t._2()._1();
+	        	Double meanTextLength 		= (double) t._2()._2()/count;
+	        	Double meanHashtagCount 	= (double) t._2()._3()/count;;
+	        	Double meanTrumpCount 		= (double) t._2()._4()/count;;
+	        	Double meanSensitiveCount 	= (double) t._2()._5()/count;
+				
+				
+				return new Tuple2<>(t._1,new Tuple5<>(count,
+													  meanTextLength,
+													  meanHashtagCount,
+													  meanTrumpCount,
+													  meanSensitiveCount));
+			}
 		};
-		
 	}
 		
+	/*
+	 * Filter out the heaser of the predictions csv file
+	 */
+	public Function<String,Boolean> filterHeader(){
+		return new Function<String,Boolean>(){
+
+			@Override
+			public Boolean call(String v1) throws Exception {
+				// first column "time" is enough to find match
+				return !v1.contains("time");
+			}
+		};
+	}
 	
+	/*
+	 * Take the read data and fill a Tuple11 with it's columns
+	 * 
+	 * Note: I tried a very long time to run the app with custom data objects (for Prediciton data, for example)
+	 *       but Java Garbage Collection and Deserialization slowed it so much down that i decided to use only prebuilt objects (Tuples, mostly)
+	 *       
+	 *       I am aware that this is very hard to read. However, the processing time improved from ~30sec/Task to 0.1sec/Task
+	 */
+	public Function<String,Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>> parseTuple11(){
+		return new Function<String,Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>>(){
+
+			@Override
+			public Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double> call(
+					String string) throws Exception {
+				
+				String[] stringArray = string.trim().replaceAll("\"", "").split(";");
+				// TODO Auto-generated method stub
+				return new Tuple11<>(stringArray[0],
+									 Boolean.parseBoolean(stringArray[1]),
+									 Boolean.parseBoolean(stringArray[2]),
+									 Boolean.parseBoolean(stringArray[3]),
+									 Boolean.parseBoolean(stringArray[4]),
+									 Boolean.parseBoolean(stringArray[5]),
+									 Double.parseDouble(stringArray[6]),
+									 Double.parseDouble(stringArray[7]),
+									 Double.parseDouble(stringArray[8]),
+									 Double.parseDouble(stringArray[9]),
+									 Double.parseDouble(stringArray[10]));
+			}
+		};
+	}
+	
+	/*
+	 * Split up the parsed prediction Tuple11 into a key and a value, this is needed for joining with the stream
+	 */
+	public PairFunction<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>,
+						Tuple6<String, Boolean, Boolean, Boolean, Boolean, Boolean>, 
+						Tuple5<Double, Double, Double, Double, Double>> splitIntoKeyValuePair(){
+		return new PairFunction<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>,
+								Tuple6<String, Boolean, Boolean, Boolean, Boolean, Boolean>, 
+								Tuple5<Double, Double, Double, Double, Double>>(){
+
+			@Override
+			public Tuple2<Tuple6<String,Boolean, Boolean, Boolean, Boolean, Boolean>, 
+						  Tuple5<Double, Double, Double, Double, Double>> call(
+								  Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double> tcp) throws Exception {
+				// TODO Auto-generated method stub
+				return new Tuple2<>(new Tuple6<>(tcp._1(), tcp._2(),tcp._3(),tcp._4(),tcp._5(),tcp._6()),
+									new Tuple5<>(tcp._7(),tcp._8(),tcp._9(),tcp._10(),tcp._11()));
+			}
+		};
+	}
+	
+	/*
+	 * Add a timestamp to the stream for correct matching with the batch
+	 */
 	public PairFunction<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double, Double, Double, Double, Double>>,
 						Tuple6<String,Boolean, Boolean, Boolean, Boolean, Boolean>, 
 						Tuple5<Double, Double, Double, Double, Double>> addTime() {
@@ -358,7 +389,10 @@ public class TweetStreamer implements java.io.Serializable {
 		};
 	}
 	
-	
+	/*
+	 * Join the stream with a prediction batch, use the timestamp and hashtag combination as key.
+	 * Then, reconstruct the prediction Tuple11 (for a little tidiness) and pair it with the just measured values
+	 */
 	public Function<JavaPairRDD<Tuple6<String,Boolean, Boolean, Boolean, Boolean, Boolean>, 
 								Tuple5<Double, Double, Double, Double, Double>>,
 					JavaPairRDD<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>,
@@ -392,13 +426,18 @@ public class TweetStreamer implements java.io.Serializable {
 		};
 	}
 	
-	
+	/*
+	 * Write the tweets as data foundation for an explorational analysis 
+	 * 
+	 * (not used in standard application anymore, but it still works)
+	 */
 	public VoidFunction<JavaPairRDD<Status, Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>>> writeTweets(String filePath){
 		return new VoidFunction<JavaPairRDD<Status, Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>>>() {
 		@Override
 		public void call(JavaPairRDD<Status, Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>> allTweetsCombos) throws Exception {
 			List<Tuple2<Status, Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>>> tweetCombos = allTweetsCombos.collect();
 	
+			// if file doesnt exist, create it
 			boolean firstLine = false;
 			File f = new File(filePath);
 			if(!f.exists() && !f.isDirectory()) { 
@@ -406,6 +445,7 @@ public class TweetStreamer implements java.io.Serializable {
 				firstLine = true;
 			}
 	
+			// and write a csv header
 			FileWriter writer = new FileWriter(f,true);
 			if(firstLine) {
 				String header = "\"timestamp\";"
@@ -424,7 +464,8 @@ public class TweetStreamer implements java.io.Serializable {
 						+ "\n";
 				writer.write(header);
 			}
-	
+			
+			// for every Status object, get some metrics and write them to the file
 			for(Tuple2<Status, Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>> tweetCombo:tweetCombos) {
 				try {
 					Status status = tweetCombo._1;
@@ -493,15 +534,19 @@ public class TweetStreamer implements java.io.Serializable {
 	};
 	}
 
+	/*
+	 * Write the summaries for hashtag combinations into a file
+	 * (this information is used to create predictions later)
+	 */
 	public VoidFunction<JavaPairRDD<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double,Double,Double,Double,Double>>> writeComboCounts(String filePath){
 		return new VoidFunction<JavaPairRDD<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double,Double,Double,Double,Double>>>(){
 
 			@Override
 			public void call(JavaPairRDD<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double,Double,Double,Double,Double>> allComboCounts)
 					throws Exception {
-				// TODO Auto-generated method stub
 				List<Tuple2<Tuple5<Boolean, Boolean, Boolean, Boolean, Boolean>, Tuple5<Double,Double,Double,Double,Double>>> comboCounts = allComboCounts.collect();
 				
+				// if file doesnt exist, create it
 				boolean firstLine = false;
 				File f = new File(filePath);
 				if(!f.exists() && !f.isDirectory()) { 
@@ -509,6 +554,7 @@ public class TweetStreamer implements java.io.Serializable {
 					firstLine = true;
 				}
 
+				// and write a csv header
 				FileWriter writer = new FileWriter(f,true);
 				if(firstLine) {
 					String header = "\"timestamp\";"
@@ -567,6 +613,10 @@ public class TweetStreamer implements java.io.Serializable {
 		};
     }
  	 	
+	/*
+	 * Write the evaluation for predictions into a file
+	 * (this information is used to visualize the evaluation in python)
+	 */
 	public VoidFunction<JavaPairRDD<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>, 
 									Tuple5<Double,Double,Double,Double,Double>>> writePredictionEval(String filePath){
 		return new VoidFunction<JavaPairRDD<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>, 
@@ -576,10 +626,10 @@ public class TweetStreamer implements java.io.Serializable {
 			public void call(JavaPairRDD<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>,
 										 Tuple5<Double,Double,Double,Double,Double>> allComboPredictions)
 					throws Exception {
-				// TODO Auto-generated method stub
 				List<Tuple2<Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double>,
 							Tuple5<Double,Double,Double,Double,Double>>> comboPredictions = allComboPredictions.collect();
 				
+				// if file doesnt exist, create it
 				boolean firstLine = false;
 				File f = new File(filePath);
 				if(!f.exists() && !f.isDirectory()) { 
@@ -587,6 +637,7 @@ public class TweetStreamer implements java.io.Serializable {
 					firstLine = true;
 				}
 	
+				// and write a csv header
 				FileWriter writer = new FileWriter(f,true);
 				if(firstLine) {
 					String header = "\"timestamp\";"
@@ -605,10 +656,6 @@ public class TweetStreamer implements java.io.Serializable {
 						   Tuple5<Double,Double,Double,Double,Double>> comboPrediction:comboPredictions) {
 					try {
 						Tuple11<String, Boolean, Boolean, Boolean, Boolean, Boolean, Double, Double, Double, Double, Double> tcp = comboPrediction._1;
-						
-//						if(tcp==null) {
-//							return;
-//						}
 						
 						Double errorCount;
 						Double errorMeanTextLength;
@@ -630,6 +677,7 @@ public class TweetStreamer implements java.io.Serializable {
 						Double predMeanTrumpCount 		= tcp._10();
 						Double predMeanSensitiveCount 	= tcp._11();
 						
+						// calculate errors
 						errorCount 					= count - predCount;
 						errorMeanTextLength 		= predMeanTextLength - meanTextLength;
 						errorMeanHashtagCount 		= predMeanHashtagCount - meanHashtagCount;

@@ -7,7 +7,7 @@ Contents:
 - Getting started
 
 ## Project description
-The project descrition is available as notebook at [target/tweetAnalysis.ipynb][0].
+The project descrition is available as notebooks at [target/tweetAnalysis.ipynb][0], [target/calcPredictions.ipynb][1] and [target/evalPredictions.ipynb][2].
 
 ## Requirements
 Following programs and libraries should be installed and functioning for running this project and its specified application part.
@@ -29,7 +29,7 @@ Following programs and libraries should be installed and functioning for running
   * numpy
   * datetime
 
-### Batch Analysis IPython Notebook
+### IPython Notebooks
 Requirements as python script plus:
   * matplotlib (for plots)
 * Jupyter
@@ -39,6 +39,7 @@ Requirements as python script plus:
 ### Quickstart
 - (optional) Create a new directory, this is your working directory %WORKING_DIR% now
   * Copy all files in %PROJECT_DIR%/target into this folder
+- Unpack all provided data files into this folder
 - Execute %WORKING_DIR%/startTweetStream.sh
 
 ### Building the project
@@ -61,12 +62,17 @@ Requirements as python script plus:
 - run the python script in this directory
   * python3 tweetAnalysis.py
 
-### Running the batch analysis notebook
+### Running the IPython notebooks
 - Open the terminal and navigate to %PROJECT_DIR%/target
 - Run command
   * jupyter notebook
 - By default, your webbrowser will open the jupyter GUI
-- Open tweetAnalysis.ipynb
+- Open the notebooks:
+  * tweetAnalysis.ipynb
+  * calcPredictions.ipynb
+  * evalPredictions.ipynb
 - Run the notebook step-by-step
 
 [0]: https://github.com/gargi/trumpTweets/blob/master/src/main/python/tweetAnalysis.ipynb "Tweet Analysis Notebook"
+[1]: https://github.com/gargi/trumpTweets/blob/master/src/main/python/calcPredictions.ipynb "Prediction Calculation Notebook"
+[2]: https://github.com/gargi/trumpTweets/blob/master/src/main/python/evalPredictions.ipynb "Prediction Evaluation Notebook"

@@ -7,7 +7,7 @@ import java.util.List;
 /*
  * This class enables comfortable csv writing
  * 
- * credit goes to Yong Mook Kim, who presented this solution on:
+ * I did not write this, credit goes to Yong Mook Kim, who presented this solution on:
  * https://www.mkyong.com/java/how-to-export-data-to-csv-file-java/
  */
 public class CSVUtils {
@@ -58,8 +58,5 @@ public class CSVUtils {
         }
         sb.append("\n");
         w.append(sb.toString());
-
-
     }
-
 }
