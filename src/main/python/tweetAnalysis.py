@@ -2,7 +2,9 @@ import pandas as pd
 import numpy as np
 import datetime
 from datetime import timedelta
+import time
 
+start = time.time()
 
 workDir             = "./"             # The main working directory
 comboHistoryFile    = workDir + "comboHistory.csv"     # path to comboHistory csv file
@@ -14,11 +16,10 @@ comboHistory = pd.read_csv(comboHistoryFile,
                            header = 0)
 
 # transform timestamp strings to datetime format, add +1 for CET Winter
-comboHistory['timestamp'] = pd.to_datetime(comboHistory['timestamp']) + timedelta(hours=1)
+comboHistory['time'] = pd.to_datetime(comboHistory['time']).apply(lambda x: x.time())
 
 # make predictions by calculatin mean metrics for every second of a day
 newComboHistory         = comboHistory.copy()
-newComboHistory['time'] = comboHistory['timestamp'].apply(lambda x: x.time())
 timePredictions         = newComboHistory.groupby(['time',
                                                    'isTrumpTweet',
                                                    'isNewsTweet',
@@ -26,9 +27,11 @@ timePredictions         = newComboHistory.groupby(['time',
                                                    'isDemocratsTweet',
                                                    'isPoliticsTweet'])['count',
                                                                        'meanTextLength',
-                                                                       'totalHashtagCount',
-                                                                       'totalTrumpCount',
-                                                                       'totalSensitiveCount'].agg(np.mean).reset_index()
+                                                                       'meanHashtagCount',
+                                                                       'meanTrumpCount',
+                                                                       'meanSensitiveCount'].agg(np.mean).reset_index()
+
+print("Number of predictions: " + str(len(timePredictions)))
 
 # write timePredictions csv file
 timePredictions.to_csv(outputFile,
@@ -36,3 +39,8 @@ timePredictions.to_csv(outputFile,
                        quotechar='"',
                        quoting=2,
                        index=False)
+
+
+end = time.time()
+timediffMin= (end - start)*1000*60
+print("Whole process took " + str(timediffMin) + " minutes.")

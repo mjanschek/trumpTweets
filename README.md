@@ -7,7 +7,8 @@ Contents:
 - Getting started
 
 ## Project description
-The project descrition is available as notebooks at [target/tweetAnalysis.ipynb][0], [target/calcPredictions.ipynb][1] and [target/evalPredictions.ipynb][2].
+The project descrition is available as notebooks at [target/tweetAnalysis.ipynb][0], [target/calcPredictions.ipynb][1] and [target/evalPredictions.ipynb][2].   
+Also, there are rendered versions in the doc directory.
 
 ## Requirements
 Following programs and libraries should be installed and functioning for running this project and its specified application part.
@@ -35,6 +36,7 @@ Requirements as python script plus:
 * Jupyter
 
 ## Getting started
+There are demo videos accessible in demo/videos.
 
 ### Quickstart
 - Unpack %PROJECT_DIR%/release_0.1.zip into a directory, this is you %WORKING_DIR% now
@@ -69,7 +71,7 @@ Requirements as python script plus:
   * tweetAnalysis.ipynb
   * calcPredictions.ipynb
   * evalPredictions.ipynb
-- Run the notebook step-by-step
+- If wanted, run the notebook step-by-step
 
 [0]: https://github.com/gargi/trumpTweets/blob/master/src/main/python/tweetAnalysis.ipynb "Tweet Analysis Notebook"
 [1]: https://github.com/gargi/trumpTweets/blob/master/src/main/python/calcPredictions.ipynb "Prediction Calculation Notebook"
