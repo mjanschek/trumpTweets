@@ -7,7 +7,7 @@ Contents:
 - Getting started
 
 ## Project description
-The project descrition is available as notebooks at [target/tweetAnalysis.ipynb][0], [target/calcPredictions.ipynb][1] and [target/evalPredictions.ipynb][2].   
+The project descrition is available as notebooks at [tweetAnalysis.ipynb][0], [calcPredictions.ipynb][1] and [evalPredictions.ipynb][2].   
 Also, there are rendered versions in the doc directory.
 
 ## Requirements
