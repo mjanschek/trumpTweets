@@ -73,6 +73,6 @@ There are demo videos accessible in demo/videos.
   * evalPredictions.ipynb
 - If wanted, run the notebook step-by-step
 
-[0]: https://github.com/gargi/trumpTweets/blob/master/src/main/python/tweetAnalysis.ipynb "Tweet Analysis Notebook"
-[1]: https://github.com/gargi/trumpTweets/blob/master/src/main/python/calcPredictions.ipynb "Prediction Calculation Notebook"
-[2]: https://github.com/gargi/trumpTweets/blob/master/src/main/python/evalPredictions.ipynb "Prediction Evaluation Notebook"
+[0]: https://github.com/mjanschek/trumpTweets/blob/master/src/main/python/tweetAnalysis.ipynb "Tweet Analysis Notebook"
+[1]: https://github.com/mjanschek/trumpTweets/blob/master/src/main/python/calcPredictions.ipynb "Prediction Calculation Notebook"
+[2]: https://github.com/mjanschek/trumpTweets/blob/master/src/main/python/evalPredictions.ipynb "Prediction Evaluation Notebook"
