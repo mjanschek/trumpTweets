@@ -1,5 +1,5 @@
 # Trump Tweet Prediction
-Project submission by Michael Janschek
+Project submission by Michael Janschek for **Data Stream Processing class in University**
 
 Contents:
 - Project description
